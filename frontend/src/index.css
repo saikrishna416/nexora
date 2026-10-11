@@ -1,0 +1,164 @@
+
+/* ===== Nexora: Global Responsive Foundation ===== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  width: 100%;
+  min-width: 320px;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  width: 100%;
+  min-width: 320px;
+  margin: 0;
+  overflow-x: clip;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Prevent media from overflowing their containers */
+img,
+video,
+svg {
+  max-width: 100%;
+}
+
+img,
+video {
+  display: block;
+}
+
+/* Responsive form controls */
+input,
+textarea,
+select,
+button {
+  max-width: 100%;
+  font: inherit;
+}
+
+input,
+textarea,
+select {
+  min-width: 0;
+}
+
+/* Allow long text to wrap */
+h1,
+h2,
+h3,
+p,
+a,
+button {
+  overflow-wrap: break-word;
+}
+
+/* Avoid forcing padding on every main element.
+   Add responsive padding to individual page containers. */
+
+/* ===== Tablet ===== */
+@media (max-width: 1024px) {
+  .nx-home {
+    width: 100%;
+  }
+
+  .nx-section,
+  .nx-quick-links {
+    max-width: 100%;
+  }
+}
+
+/* ===== Mobile ===== */
+@media (max-width: 600px) {
+  .nx-home {
+    font-size: 14px;
+  }
+
+  .nx-section {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .nx-department-grid,
+  .nx-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .nx-department-image-wrap {
+    height: 130px;
+  }
+
+  .nx-product-image {
+    height: 160px;
+  }
+
+  .nx-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .nx-quick-links {
+    grid-template-columns: 1fr;
+  }
+
+  .nx-deal-list {
+    grid-template-columns: 1fr;
+  }
+
+  button,
+  a {
+    touch-action: manipulation;
+  }
+}
+
+/* ===== Small mobile ===== */
+@media (max-width: 360px) {
+  .nx-section {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .nx-department-grid,
+  .nx-product-grid {
+    gap: 8px;
+  }
+
+  .nx-department-image-wrap {
+    height: 110px;
+  }
+
+  .nx-product-image {
+    height: 140px;
+  }
+}
+
+/* Hide horizontal scrollbar */
+html,
+body,
+#root {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+/* Hide scrollbar in the navbar area */
+nav,
+.navbar,
+.nx-navbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+nav::-webkit-scrollbar,
+.navbar::-webkit-scrollbar,
+.nx-navbar::-webkit-scrollbar {
+  display: none;
+}

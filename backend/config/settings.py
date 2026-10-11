@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    "django_filters",
     "rest_framework",
     "corsheaders",
 
@@ -49,6 +50,7 @@ INSTALLED_APPS = [
     "orders",
     "reviews",
     "payments",
+    "wishlist",
 ]
 
 MIDDLEWARE = [
@@ -150,8 +152,26 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
+    "DEFAULT_FILTER_BACKENDS": (
+    "django_filters.rest_framework.DjangoFilterBackend",
+    ),
+    "DEFAULT_PAGINATION_CLASS": (
+    "rest_framework.pagination.PageNumberPagination"
+    ),
+    "PAGE_SIZE": 100,
 }
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
 ]
 AUTH_USER_MODEL = "accounts.User"
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
