@@ -124,13 +124,14 @@ function Register() {
     justifyContent: "center",
     border: "none",
     background: "transparent",
-    color: "#8b5cf6",
+    color: "#0f766e",
     cursor: "pointer",
     padding: "5px",
   };
 
   return (
-    <div
+    <main
+      className="nx-register-page"
       style={{
         minHeight: "calc(100vh - 70px)",
         boxSizing: "border-box",
@@ -139,24 +140,26 @@ function Register() {
         alignItems: "center",
         justifyContent: "center",
         background:
-          "radial-gradient(circle at 10% 10%, #f3e8ff 0, transparent 32%), radial-gradient(circle at 90% 90%, #ffe4e6 0, transparent 30%), #f9fafb",
+          "radial-gradient(circle at 10% 10%, #ccfbf1 0, transparent 32%), radial-gradient(circle at 90% 90%, #e0f2fe 0, transparent 30%), #f9fafb",
       }}
     >
       <div
+        className="nx-register-layout"
         style={{
           width: "100%",
           maxWidth: "1000px",
           display: "grid",
-          gridTemplateColumns: "minmax(0, 0.9fr) minmax(0, 1.1fr)",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
           background: "#ffffff",
           borderRadius: "26px",
           overflow: "hidden",
-          boxShadow: "0 24px 70px rgba(76, 29, 149, 0.13)",
+          boxShadow: "0 24px 70px rgba(15, 23, 42, 0.12)",
           border: "1px solid rgba(255,255,255,0.8)",
         }}
       >
         {/* Left welcome panel */}
         <section
+          className="nx-register-welcome"
           style={{
             position: "relative",
             overflow: "hidden",
@@ -166,7 +169,7 @@ function Register() {
             justifyContent: "space-between",
             color: "white",
             background:
-              "linear-gradient(145deg, #4c1d95 0%, #7c3aed 52%, #db2777 120%)",
+              "linear-gradient(145deg, #0f172a 0%, #0f766e 52%, #0f766e 120%)",
             minHeight: "560px",
             boxSizing: "border-box",
           }}
@@ -247,12 +250,12 @@ function Register() {
               <br />
               you. A lot more
               <br />
-              <span style={{ color: "#fbcfe8" }}>Nexora.</span>
+              <span style={{ color: "#99f6e4" }}>Nexora.</span>
             </h1>
 
             <p
               style={{
-                color: "#ede9fe",
+                color: "#ccfbf1",
                 lineHeight: "1.8",
                 fontSize: "14px",
                 maxWidth: "300px",
@@ -270,7 +273,7 @@ function Register() {
               zIndex: 1,
               paddingTop: "20px",
               borderTop: "1px solid rgba(255,255,255,0.2)",
-              color: "#ede9fe",
+              color: "#ccfbf1",
               fontSize: "12px",
             }}
           >
@@ -284,8 +287,9 @@ function Register() {
 
         {/* Registration form */}
         <section
+          className="nx-register-form"
           style={{
-            padding: "42px clamp(22px, 5vw, 55px)",
+            padding: "clamp(24px, 5vw, 54px)",
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
@@ -295,7 +299,7 @@ function Register() {
           <div style={{ marginBottom: "27px" }}>
             <p
               style={{
-                color: "#8b5cf6",
+                color: "#0f766e",
                 fontWeight: "800",
                 fontSize: "12px",
                 letterSpacing: "1.7px",
@@ -475,13 +479,13 @@ function Register() {
                 border: "none",
                 borderRadius: "12px",
                 background: loading
-                  ? "#a78bfa"
-                  : "linear-gradient(100deg, #7c3aed, #c026d3)",
+                  ? "#5eead4"
+                  : "linear-gradient(100deg, #0f766e, #115e59)",
                 color: "white",
                 cursor: loading ? "not-allowed" : "pointer",
                 fontSize: "14px",
                 fontWeight: "700",
-                boxShadow: "0 8px 20px rgba(124,58,237,0.2)",
+                boxShadow: "0 8px 20px rgba(15, 118, 110, 0.2)",
                 transition: "transform 0.2s, box-shadow 0.2s",
               }}
             >
@@ -517,7 +521,7 @@ function Register() {
             <Link
               to="/login"
               style={{
-                color: "#7c3aed",
+                color: "#0f766e",
                 fontWeight: "800",
                 textDecoration: "none",
               }}
@@ -542,19 +546,64 @@ function Register() {
       </div>
 
       <style>{`
+        .nx-register-page {
+          width: 100%;
+        }
+        .nx-register-layout {
+          grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)) !important;
+        }
+        .nx-register-welcome {
+          min-width: 0;
+        }
+        .nx-register-form {
+          min-width: 0;
+        }
+        .nx-register-form input {
+          min-width: 0;
+        }
         @media (max-width: 760px) {
-          .register-unused {}
+          .nx-register-page {
+            padding: 20px 12px !important;
+            align-items: flex-start !important;
+          }
+          .nx-register-layout {
+            grid-template-columns: minmax(0, 1fr) !important;
+            border-radius: 18px !important;
+          }
+          .nx-register-welcome {
+            display: none !important;
+          }
+          .nx-register-layout {
+            max-width: 440px !important;
+          }
+          .nx-register-welcome > div:nth-of-type(2) {
+            margin: 26px 0 !important;
+          }
+          .nx-register-form {
+            padding: 24px 20px !important;
+          }
+          .nx-register-form h2 {
+            font-size: clamp(25px, 6vw, 31px) !important;
+          }
+        }
+        @media (max-width: 380px) {
+          .nx-register-page {
+            padding: 12px 8px !important;
+          }
+          .nx-register-form {
+            padding: 20px 16px !important;
+          }
         }
         input:focus {
-          border-color: #a78bfa !important;
-          box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.16);
+          border-color: #5eead4 !important;
+          box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.16);
         }
         button[type="submit"]:hover:not(:disabled) {
           transform: translateY(-1px);
-          box-shadow: 0 12px 25px rgba(124, 58, 237, 0.28);
+          box-shadow: 0 12px 25px rgba(15, 118, 110, 0.28);
         }
       `}</style>
-    </div>
+    </main>
   );
 }
 

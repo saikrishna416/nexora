@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import api from "../services/api";
+import api, { API_ORIGIN } from "../services/api";
 
 const getImageUrl = (image) => {
   if (!image) return "";
@@ -11,7 +11,7 @@ const getImageUrl = (image) => {
   }
 
   // Handle relative Django media URLs
-  const baseURL = api.defaults.baseURL || "http://127.0.0.1:8000";
+  const baseURL = API_ORIGIN;
 
   return `${baseURL.replace(/\/$/, "")}/${image.replace(/^\//, "")}`;
 };

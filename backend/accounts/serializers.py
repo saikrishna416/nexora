@@ -47,3 +47,24 @@ class ProfileSerializer(serializers.ModelSerializer):
             "profile_image",
         ]
         read_only_fields = ["id", "username"]
+        
+
+from .models import SavedAddress
+
+
+class SavedAddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SavedAddress
+        fields = [
+            "id",
+            "full_name",
+            "phone_number",
+            "address_line",
+            "city",
+            "state",
+            "pincode",
+            "is_default",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
+

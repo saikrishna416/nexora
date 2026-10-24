@@ -62,6 +62,7 @@ function Login() {
 
   return (
     <main
+      className="nx-login-page"
       style={{
         minHeight: "calc(100vh - 70px)",
         display: "flex",
@@ -73,6 +74,7 @@ function Login() {
       }}
     >
       <div
+        className="nx-login-layout"
         style={{
           width: "100%",
           maxWidth: "1000px",
@@ -87,6 +89,7 @@ function Login() {
       >
         {/* Welcome panel */}
         <section
+          className="nx-login-welcome"
           style={{
             padding: "48px 38px",
             background: "linear-gradient(145deg, #0f172a, #134e4a 75%, #0f766e)",
@@ -184,6 +187,7 @@ function Login() {
 
         {/* Login form */}
         <section
+          className="nx-login-form"
           style={{
             padding: "clamp(28px, 5vw, 54px)",
             display: "flex",
@@ -395,6 +399,22 @@ function Login() {
           </p>
         </section>
       </div>
+      <style>{`
+        .nx-login-page { width: 100%; }
+        .nx-login-layout { min-width: 0; }
+        .nx-login-welcome, .nx-login-form { min-width: 0; }
+        @media (max-width: 760px) {
+          .nx-login-page { padding: 18px 12px !important; align-items: flex-start !important; }
+          .nx-login-layout { max-width: 440px !important; grid-template-columns: minmax(0, 1fr) !important; border-radius: 18px !important; }
+          .nx-login-welcome { display: none !important; }
+          .nx-login-form { padding: 24px 20px !important; }
+          .nx-login-form h1, .nx-login-form h2 { font-size: clamp(24px, 6vw, 30px) !important; }
+        }
+        @media (max-width: 380px) {
+          .nx-login-page { padding: 12px 8px !important; }
+          .nx-login-form { padding: 20px 16px !important; }
+        }
+      `}</style>
     </main>
   );
 }

@@ -54,73 +54,90 @@ class CreatePaymentView(APIView):
                 status=400,
             )
 
-        existing_payment = Payment.objects.filter(
-            order=order
-        ).first()
+        existing_payment = Payment.objects.filter(order=order).first()
 
         if existing_payment:
-            return Response(
-                {
-                    "detail": (
-                        "A payment record already exists for this order."
-                    )
-                },
-                status=400,
-            )
+            # Allow the existing payment to be reused for demo testing.
+            existing_payment.payment_method = payment_method
+            existing_payment.transaction_id = f"TXN-{uuid.uuid4().hex[:12].upper()}"
 
-        transaction_id = f"TXN-{uuid.uuid4().hex[:12].upper()}"
+            if payment_method == "upi":
+                existing_payment.status = "success"
+                order.payment_status = "paid"
+                order.status = "pending"
 
-        if payment_method == "cod":
-            # COD is not paid until the courier collects the money.
-            payment = Payment.objects.create(
-                order=order,
-                amount=order.total_amount,
-                payment_method="cod",
-                transaction_id=transaction_id,
-                status="pending",
-            )
+            elif payment_method == "cod":
+                existing_payment.status = "pending"
+                order.payment_status = "pending"
+                order.status = "pending"
 
-            order.payment_status = "pending"
-            order.status = "pending"
+            else:
+                existing_payment.status = "pending"
+                order.payment_status = "pending"
+                order.status = "pending"
 
-        else:
-            # IMPORTANT:
-            # This is only a placeholder, NOT real card/UPI processing.
-            # Do not treat a real online payment as successful until
-            # a payment gateway confirms it on the backend.
-            payment = Payment.objects.create(
-                order=order,
-                amount=order.total_amount,
-                payment_method=payment_method,
-                transaction_id=transaction_id,
-                status="pending",
-            )
+            existing_payment.save()
+            order.save(update_fields=["payment_status", "status", "updated_at"])
 
-            order.payment_status = "pending"
-            order.status = "pending"
-
-        order.save(
-            update_fields=[
-                "payment_status",
-                "status",
-                "updated_at",
-            ]
-        )
-
-        serializer = PaymentSerializer(payment)
-
-        return Response(
-            {
-                "payment": serializer.data,
+            return Response({
+                "payment": PaymentSerializer(existing_payment).data,
                 "order_id": order.id,
                 "order_number": order.order_number,
                 "order_status": order.status,
                 "payment_status": order.payment_status,
                 "message": (
-                    "Cash on Delivery selected. Payment is pending."
+                    "UPI payment successful (DEMO MODE)."
+                    if payment_method == "upi"
+                    else "Cash on Delivery selected. Payment is pending."
                     if payment_method == "cod"
-                    else "Payment initiated. Awaiting payment confirmation."
+                    else "Card payment is pending. Card processing is not integrated."
                 ),
-            },
-            status=201,
+            }, status=200)
+
+        
+        transaction_id = f"TXN-{uuid.uuid4().hex[:12].upper()}"
+
+        # DEMO ONLY: Online payment success is simulated.
+        if payment_method in ["upi", "card"]:
+            payment_status = "success"
+            order_payment_status = "paid"
+            message = (
+                f"{payment_method.upper()} payment successful (DEMO MODE)."
+            )
+        else:
+            payment_status = "pending"
+            order_payment_status = "pending"
+            message = "Cash on Delivery selected. Payment is pending."
+
+        existing_payment = Payment.objects.filter(order=order).first()
+
+        if existing_payment:
+            existing_payment.payment_method = payment_method
+            existing_payment.transaction_id = transaction_id
+            existing_payment.status = payment_status
+            existing_payment.amount = order.total_amount
+            existing_payment.save()
+            payment = existing_payment
+        else:
+            payment = Payment.objects.create(
+                order=order,
+                amount=order.total_amount,
+                payment_method=payment_method,
+                transaction_id=transaction_id,
+                status=payment_status,
+            )
+
+        order.payment_status = order_payment_status
+        order.status = "pending"
+        order.save(
+            update_fields=["payment_status", "status", "updated_at"]
         )
+
+        return Response({
+            "payment": PaymentSerializer(payment).data,
+            "order_id": order.id,
+            "order_number": order.order_number,
+            "order_status": order.status,
+            "payment_status": order.payment_status,
+            "message": message,
+        }, status=200 if existing_payment else 201)

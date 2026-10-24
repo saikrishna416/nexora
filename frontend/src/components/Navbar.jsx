@@ -8,6 +8,8 @@ import {
 // Keep these category values aligned with your Products page.
 const categories = [
   { label: "Electronics", value: "Electronics" },
+  { label: "Mobiles", value: "Mobiles" },
+  { label: "TVs & Appliances", value: "TVs & Appliances" },
   { label: "Men's Fashion", value: "Men's Fashion" },
   { label: "Women's Fashion", value: "Women's Fashion" },
   { label: "Kids", value: "Kids" },
@@ -16,7 +18,7 @@ const categories = [
   { label: "Sports", value: "Sports & Fitness" },
 ];
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+const API_BASE_URL = (import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`).replace(/\/$/, "");
 
 function Navbar() {
   const { isAuthenticated, logout } = useAuth();
@@ -239,8 +241,8 @@ function Navbar() {
               <small>Deliver to</small>
               <strong>
                 {country === "India" && deliveryCity
-                  ? `Deliver to ${deliveryCity} ${pinCode}`
-                  : `Deliver to ${country}${pinCode ? ` ${pinCode}` : ""}`}
+                  ? `${deliveryCity}${pinCode ? ` ${pinCode}` : ""}`
+                  : `${country}${pinCode ? ` ${pinCode}` : ""}`}
               </strong>
             </span>
             <ChevronRight className="nexora-delivery-chevron" size={14} />
@@ -431,8 +433,8 @@ function Navbar() {
 
       <style>{`
         .nexora-header{position:sticky;top:0;z-index:1000;width:100%}
-        .nexora-main-header{display:flex;align-items:center;gap:16px;padding:12px 24px;box-sizing:border-box;background:#111827;color:#fff}
-        .nexora-logo{flex-shrink:0;color:#fff;text-decoration:none;font-size:28px;font-weight:800;letter-spacing:-1px}
+        .nexora-main-header{display:grid;grid-template-columns:auto minmax(150px,auto) minmax(180px,1fr) auto;align-items:center;gap:clamp(10px,1.5vw,22px);padding:12px clamp(14px,2.2vw,28px);box-sizing:border-box;background:#111827;color:#fff}
+        .nexora-logo{justify-self:start;flex-shrink:0;color:#fff;text-decoration:none;font-size:clamp(24px,2.5vw,32px);font-weight:800;letter-spacing:-1px;white-space:nowrap}
         .nexora-logo span{color:#5eead4}
         .nexora-delivery{display:flex;align-items:center;gap:6px;flex-shrink:0;padding:6px;border:1px solid transparent;border-radius:6px;background:transparent;color:#fff;text-align:left;cursor:pointer}
         .nexora-delivery:hover{border-color:#5eead4;background:#1f2937}
@@ -489,8 +491,46 @@ function Navbar() {
         .nexora-pin-result span{display:flex;flex-direction:column;gap:3px}
         .nexora-pin-result strong{font-size:13px}
         .nexora-pin-result small{color:#0f766e;font-size:11px}
-        @media(max-width:900px){.nexora-main-header{gap:10px;padding:10px 14px}.nexora-delivery-copy{display:none}.nexora-delivery{gap:2px;padding:7px}.nexora-delivery-chevron{display:none}.nexora-icon-link span{display:none}.nexora-account-links{gap:2px}}
-        @media(max-width:600px){.nexora-main-header{flex-wrap:wrap;gap:8px;padding:10px}.nexora-logo{font-size:24px}.nexora-account-links{margin-left:auto}.nexora-search{order:3;flex-basis:100%;height:40px}.nexora-category-nav{gap:2px;padding:6px 8px}.nexora-nav-link{padding:7px 8px;font-size:12px}.nexora-delivery-copy{display:block}.nexora-delivery-copy strong{max-width:95px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+        @media(max-width:900px){
+          .nexora-main-header{grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:10px 14px}
+          .nexora-logo{grid-column:1;grid-row:1;font-size:26px}
+          .nexora-delivery{grid-column:1;grid-row:2;justify-self:start;min-width:0;padding:4px 0}
+          .nexora-delivery-copy{display:block}
+          .nexora-delivery-copy strong{max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+          .nexora-delivery-chevron{display:none}
+          .nexora-search{grid-column:1 / -1;grid-row:3;width:100%;min-width:0;height:42px}
+          .nexora-account-links{grid-column:2;grid-row:1 / span 2;justify-self:end;gap:3px}
+          .nexora-icon-link{padding:7px}
+          .nexora-icon-link span{display:none}
+          .nexora-category-nav{gap:4px;padding:7px 12px}
+        }
+        @media(max-width:600px){
+          .nexora-main-header{grid-template-columns:minmax(0,1fr) auto;gap:7px;padding:9px 10px}
+          .nexora-logo{font-size:24px}
+          .nexora-delivery-copy small{font-size:10px}
+          .nexora-delivery-copy strong{max-width:150px;font-size:12px}
+          .nexora-delivery>svg:first-child{width:19px;height:19px}
+          .nexora-account-links{gap:1px}
+          .nexora-icon-link{padding:6px}
+          .nexora-icon-link svg{width:21px;height:21px}
+          .nexora-search{grid-column:1 / -1;grid-row:3;height:40px}
+          .nexora-search input[type="search"]{font-size:14px;padding-inline:11px}
+          .nexora-search>button[type="submit"]{width:43px;min-width:43px}
+          .nexora-category-nav{gap:4px;padding:6px 8px;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:none;white-space:nowrap}
+          .nexora-category-nav::-webkit-scrollbar{display:none}
+          .nexora-nav-link{flex:0 0 auto;padding:8px 9px;font-size:12px}
+          .nexora-nav-spacer{flex:0 0 4px}
+          .nexora-logout{flex:0 0 auto;padding:7px 10px}
+        }
+        @media(max-width:380px){
+          .nexora-logo{font-size:22px}
+          .nexora-main-header{padding:8px;gap:6px}
+          .nexora-icon-link{padding:5px}
+          .nexora-icon-link svg{width:19px;height:19px}
+          .nexora-delivery-copy strong{max-width:118px;font-size:11px}
+          .nexora-category-nav{padding-inline:6px}
+          .nexora-nav-link{padding-inline:8px;font-size:11px}
+        }
       `}</style>
     </>
   );

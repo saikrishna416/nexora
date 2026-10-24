@@ -1,3 +1,4 @@
+
 absl-py==2.4.0
 asgiref==3.12.1
 astunparse==1.6.3
@@ -10,14 +11,17 @@ contourpy==1.3.3
 cycler==0.12.1
 Django==5.2.18
 django-cors-headers==4.9.0
+django-filter
 djangorestframework==3.18.3
-djangorestframework_simplejwt==5.5.1
+djangorestframework-simplejwt==5.5.1
+dj-database-url
 Flask==3.1.3
 flatbuffers==25.12.19
 fonttools==4.63.0
 gast==0.7.0
 google-pasta==0.2.0
 grpcio==1.81.0
+gunicorn
 h5py==3.14.0
 idna==3.18
 itsdangerous==2.2.0
@@ -42,6 +46,7 @@ protobuf==7.35.0
 Pygments==2.20.0
 PyJWT==2.15.1
 pyparsing==3.3.2
+psycopg[binary]
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.4
 requests==2.34.2
@@ -56,9 +61,5 @@ tzdata==2026.2
 urllib3==2.7.0
 Werkzeug==3.1.8
 wheel==0.47.0
-wrapt==2.2.1
-dj-database-url
-django-filter
-psycopg[binary]
-gunicorn
 whitenoise
+wrapt==2.2.1

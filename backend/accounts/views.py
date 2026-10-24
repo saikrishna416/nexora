@@ -28,3 +28,31 @@ class ProfileView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+    
+
+from .models import SavedAddress
+from .serializers import SavedAddressSerializer
+
+
+class SavedAddressListCreateView(generics.ListCreateAPIView):
+    serializer_class = SavedAddressSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return SavedAddress.objects.filter(
+            user=self.request.user
+        ).order_by("-is_default", "-created_at")
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class SavedAddressDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = SavedAddressSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return SavedAddress.objects.filter(
+            user=self.request.user
+        )
+

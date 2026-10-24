@@ -187,7 +187,7 @@ const products = useMemo(() => {
       return image;
     }
 
-    return `http://127.0.0.1:8000${image.startsWith("/") ? "" : "/"}${image}`;
+    return `${import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`}${image.startsWith("/") ? "" : "/"}${image}`;
   };
 
   return (
@@ -480,7 +480,8 @@ const products = useMemo(() => {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          gap: 16px;
+          gap: 12px;
+          min-width: 0;
           padding: 17px;
           border: 1px solid #d5eee9;
           border-radius: 10px;
@@ -494,6 +495,11 @@ const products = useMemo(() => {
           color: #087f73;
         }
 
+        .saved-address > div {
+          flex: 1 1 auto;
+          min-width: 0;
+        }
+
         .saved-address p {
           margin: 9px 0 0;
           line-height: 1.65;
@@ -502,12 +508,16 @@ const products = useMemo(() => {
         }
 
         .checkout-text-button {
+          flex: 0 0 auto;
+          white-space: nowrap;
+          word-break: normal;
+          overflow-wrap: normal;
           border: 0;
           background: transparent;
           color: #087f73;
           font-weight: 750;
           cursor: pointer;
-          padding: 5px;
+          padding: 5px 0 5px 8px;
         }
 
         .checkout-items {
@@ -679,7 +689,31 @@ const products = useMemo(() => {
 
           .checkout-card,
           .checkout-summary {
-            padding: 18px;
+            padding: 16px;
+            border-radius: 14px;
+          }
+
+          .saved-address {
+            padding: 13px;
+            gap: 8px;
+          }
+
+          .saved-address p {
+            font-size: 14px;
+            line-height: 1.5;
+          }
+
+          .saved-label {
+            font-size: 10px;
+          }
+
+          .checkout-section-heading {
+            align-items: flex-start;
+            gap: 10px;
+          }
+
+          .checkout-header h1 {
+            font-size: clamp(26px, 7vw, 34px);
           }
 
           .checkout-item {

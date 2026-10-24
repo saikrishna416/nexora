@@ -1,22 +1,25 @@
+
 import axios from "axios";
 
-
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV
+    ? "http://127.0.0.1:8000/api"
+    : "https://nexora-backend-2qxc.onrender.com/api");
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api",
+  baseURL: API_BASE_URL.replace(/\/+$/, ""),
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-
-
 api.interceptors.request.use(
   (config) => {
-    const accessToken = localStorage.getItem("access_token");
+    const token = localStorage.getItem("access_token");
 
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
+    if (token && token !== "null" && token !== "undefined") {
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
     return config;
@@ -28,11 +31,11 @@ let isRefreshing = false;
 let failedQueue = [];
 
 const processQueue = (error, token = null) => {
-  failedQueue.forEach((promise) => {
+  failedQueue.forEach(({ resolve, reject }) => {
     if (error) {
-      promise.reject(error);
+      reject(error);
     } else {
-      promise.resolve(token);
+      resolve(token);
     }
   });
 
@@ -41,12 +44,12 @@ const processQueue = (error, token = null) => {
 
 api.interceptors.response.use(
   (response) => response,
-
   async (error) => {
     const originalRequest = error.config;
 
     if (
       error.response?.status !== 401 ||
+      !originalRequest ||
       originalRequest._retry
     ) {
       return Promise.reject(error);
@@ -63,6 +66,8 @@ api.interceptors.response.use(
         failedQueue.push({ resolve, reject });
       })
         .then((token) => {
+          originalRequest.headers =
+            originalRequest.headers || {};
           originalRequest.headers.Authorization = `Bearer ${token}`;
           return api(originalRequest);
         })
@@ -74,10 +79,9 @@ api.interceptors.response.use(
 
     try {
       const response = await axios.post(
-        "http://127.0.0.1:8000/api/accounts/token/refresh/",
-        {
-          refresh: refreshToken,
-        }
+        `${API_BASE_URL.replace(/\/+$/, "")}/accounts/token/refresh/`,
+        { refresh: refreshToken },
+        { headers: { "Content-Type": "application/json" } }
       );
 
       const newAccessToken = response.data.access;
@@ -86,13 +90,14 @@ api.interceptors.response.use(
 
       processQueue(null, newAccessToken);
 
+      originalRequest.headers =
+        originalRequest.headers || {};
       originalRequest.headers.Authorization =
         `Bearer ${newAccessToken}`;
 
       return api(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError, null);
-
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
 

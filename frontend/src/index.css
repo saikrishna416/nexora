@@ -1,5 +1,9 @@
-
 /* ===== Nexora: Global Responsive Foundation ===== */
+
+:root {
+  color-scheme: light;
+  --nx-page-gutter: clamp(12px, 3vw, 32px);
+}
 
 *,
 *::before,
@@ -12,11 +16,13 @@ html {
   min-width: 320px;
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   width: 100%;
   min-width: 320px;
+  min-height: 100vh;
   margin: 0;
   overflow-x: clip;
 }
@@ -24,12 +30,15 @@ body {
 #root {
   width: 100%;
   min-height: 100vh;
+  isolation: isolate;
 }
 
-/* Prevent media from overflowing their containers */
+/* Prevent media and embedded content from overflowing containers */
 img,
 video,
-svg {
+svg,
+canvas,
+iframe {
   max-width: 100%;
 }
 
@@ -38,7 +47,6 @@ video {
   display: block;
 }
 
-/* Responsive form controls */
 input,
 textarea,
 select,
@@ -53,20 +61,140 @@ select {
   min-width: 0;
 }
 
-/* Allow long text to wrap */
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+[role="button"] {
+  touch-action: manipulation;
+}
+
 h1,
 h2,
 h3,
+h4,
+h5,
+h6,
 p,
 a,
-button {
-  overflow-wrap: break-word;
+button,
+label,
+li {
+  overflow-wrap: anywhere;
 }
 
-/* Avoid forcing padding on every main element.
-   Add responsive padding to individual page containers. */
+pre,
+code {
+  max-width: 100%;
+}
 
-/* ===== Tablet ===== */
+pre {
+  overflow-x: auto;
+}
+
+table {
+  max-width: 100%;
+}
+
+main,
+section,
+article,
+aside,
+header,
+footer {
+  min-width: 0;
+}
+
+/* Reusable responsive containers and grids */
+.nx-home,
+.nx-section,
+.nx-quick-links,
+.nx-department-grid,
+.nx-product-grid,
+.nx-hero,
+.nx-deal-list {
+  min-width: 0;
+}
+
+.nx-home {
+  width: 100%;
+}
+
+.nx-section {
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: var(--nx-page-gutter);
+}
+
+.nx-department-grid,
+.nx-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: clamp(10px, 1.5vw, 20px);
+}
+
+.nx-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: clamp(16px, 3vw, 36px);
+}
+
+.nx-quick-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: clamp(10px, 1.5vw, 20px);
+}
+
+.nx-deal-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: clamp(12px, 2vw, 24px);
+}
+
+.nx-department-image-wrap,
+.nx-product-image {
+  width: 100%;
+  overflow: hidden;
+}
+
+.nx-department-image-wrap img,
+.nx-product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Generic layout helpers for pages with inline or custom grid styles */
+.nx-responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(12px, 2vw, 24px);
+}
+
+.nx-responsive-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-width: 0;
+}
+
+.nx-responsive-row > * {
+  min-width: 0;
+}
+
+.nx-responsive-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Tablet and small laptop */
 @media (max-width: 1024px) {
   .nx-home {
     width: 100%;
@@ -76,22 +204,67 @@ button {
   .nx-quick-links {
     max-width: 100%;
   }
+
+  .nx-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
 }
 
-/* ===== Mobile ===== */
+/* Tablet portrait and mobile */
+@media (max-width: 760px) {
+  .nx-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .nx-responsive-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Common two-panel auth/register layouts */
+  .nx-auth-layout,
+  .nx-register-layout,
+  .nx-login-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .nx-auth-aside,
+  .nx-register-aside,
+  .nx-login-aside {
+    display: none;
+  }
+
+  .nx-auth-card,
+  .nx-register-card,
+  .nx-login-card {
+    width: 100%;
+    max-width: 560px;
+    margin-inline: auto;
+  }
+
+  .nx-page-container {
+    padding: 24px var(--nx-page-gutter);
+  }
+}
+
+/* Mobile */
 @media (max-width: 600px) {
+  html,
+  body {
+    min-width: 320px;
+  }
+
   .nx-home {
     font-size: 14px;
   }
 
   .nx-section {
-    padding-left: 14px;
-    padding-right: 14px;
+    padding-inline: 14px;
   }
 
   .nx-department-grid,
   .nx-product-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
 
   .nx-department-image-wrap {
@@ -102,29 +275,34 @@ button {
     height: 160px;
   }
 
-  .nx-hero {
-    grid-template-columns: 1fr;
-  }
-
-  .nx-quick-links {
-    grid-template-columns: 1fr;
-  }
-
+  .nx-quick-links,
   .nx-deal-list {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  button,
-  a {
-    touch-action: manipulation;
+  .nx-page-container {
+    padding: 20px 14px;
+  }
+
+  .nx-page-title {
+    font-size: clamp(24px, 7vw, 32px);
+  }
+
+  .nx-responsive-row {
+    gap: 8px;
+  }
+
+  /* Keep buttons easy to tap without forcing all links to fill the screen */
+  button {
+    min-height: 40px;
   }
 }
 
-/* ===== Small mobile ===== */
+/* Small mobile */
 @media (max-width: 360px) {
-  .nx-section {
-    padding-left: 10px;
-    padding-right: 10px;
+  .nx-section,
+  .nx-page-container {
+    padding-inline: 10px;
   }
 
   .nx-department-grid,
@@ -141,15 +319,14 @@ button {
   }
 }
 
-/* Hide horizontal scrollbar */
-html,
-body,
-#root {
+/* Prevent common fixed-width elements from causing horizontal overflow */
+[style*="width: 1100px"],
+[style*="width: 1200px"],
+[style*="width: 1000px"] {
   max-width: 100%;
-  overflow-x: clip;
 }
 
-/* Hide scrollbar in the navbar area */
+/* Keep navigation scrollbars hidden without disabling scrolling */
 nav,
 .navbar,
 .nx-navbar {
@@ -162,3 +339,27 @@ nav::-webkit-scrollbar,
 .nx-navbar::-webkit-scrollbar {
   display: none;
 }
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ===== Cart page responsive layout ===== */
+.nx-cart-page { width: min(100%, 1100px); margin: 0 auto; padding: 45px 24px; min-width: 0; }
+.nx-cart-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 30px; align-items: start; min-width: 0; }
+.nx-cart-item { display: flex; gap: 20px; min-width: 0; padding: 20px; margin-bottom: 18px; border: 1px solid #e5e7eb; border-radius: 10px; background: white; }
+.nx-cart-item-image { display: flex; align-items: center; justify-content: center; width: 130px; height: 130px; flex: 0 0 130px; overflow: hidden; border-radius: 8px; background: #f3f4f6; }
+.nx-cart-item-image img { width: 100%; height: 100%; object-fit: contain; }
+.nx-cart-item-info { flex: 1; min-width: 0; }
+.nx-cart-summary { min-width: 0; padding: 25px; border: 1px solid #e5e7eb; border-radius: 10px; background: #f9fafb; position: sticky; top: 20px; }
+@media (max-width: 800px) { .nx-cart-layout { grid-template-columns: minmax(0, 1fr); gap: 18px; } .nx-cart-summary { position: static; grid-row: 1; } .nx-cart-page { padding: 30px 18px; } }
+@media (max-width: 560px) { .nx-cart-page { padding: 24px 12px; } .nx-cart-page h1 { font-size: clamp(28px, 8vw, 36px) !important; margin-bottom: 20px !important; } .nx-cart-item { gap: 12px; padding: 12px; } .nx-cart-item-image { width: 94px; height: 110px; flex-basis: 94px; } .nx-cart-item-info h2 { font-size: 17px !important; line-height: 1.3; overflow-wrap: anywhere; } .nx-cart-summary { padding: 18px; } .nx-cart-summary h2 { font-size: 20px !important; } .nx-cart-summary button { min-height: 44px; } }
+@media (max-width: 360px) { .nx-cart-item { gap: 9px; padding: 9px; } .nx-cart-item-image { width: 76px; height: 92px; flex-basis: 76px; } .nx-cart-item-info h2 { font-size: 15px !important; } .nx-cart-summary { padding: 14px; } }

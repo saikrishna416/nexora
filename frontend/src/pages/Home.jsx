@@ -57,7 +57,7 @@ const departments = [
     image: "https://images.unsplash.com/photo-1471286174890-9c112ffca5b4?w=700&q=80",
   },
   {
-    name: "Appliances",
+    name: "Tv's & Appliances", 
     label: "Upgrade your home",
     category: "Appliances",
     image: "https://images.unsplash.com/photo-1556911220-bff31c812dba?w=700&q=80",
