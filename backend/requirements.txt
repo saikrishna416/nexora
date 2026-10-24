@@ -61,3 +61,4 @@ dj-database-url
 django-filter
 psycopg[binary]
 gunicorn
+whitenoise
