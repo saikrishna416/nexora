@@ -59,3 +59,4 @@ wheel==0.47.0
 wrapt==2.2.1
 dj-database-url
 django-filter
+psycopg[binary]
