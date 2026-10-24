@@ -187,10 +187,8 @@ REST_FRAMEWORK = {
 }
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
-]
-
-CORS_ALLOWED_ORIGINS = [
     "https://nexora-six-weld.vercel.app",
+    "https://nexora-9u16pd3cq-httpsgithubcomsaikrishna416birthday-v2.vercel.app",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
