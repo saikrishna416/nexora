@@ -1,7 +1,5 @@
-from django.db.models import Avg, Count
-from rest_framework import serializers
 
-from reviews.models import Review
+from rest_framework import serializers
 
 from .models import Category, Product, ProductImage
 
@@ -38,15 +36,17 @@ class ProductSerializer(serializers.ModelSerializer):
         many=True,
         read_only=True,
     )
+
     average_rating = serializers.SerializerMethodField()
     review_count = serializers.SerializerMethodField()
-    
+
     def get_average_rating(self, obj):
-        result = obj.reviews.aggregate(average=Avg("rating"))
-        average = result["average"]
+        average = getattr(obj, "annotated_average_rating", None)
         return round(average, 1) if average is not None else None
+
     def get_review_count(self, obj):
-        return obj.reviews.count()
+        count = getattr(obj, "annotated_review_count", None)
+        return count if count is not None else 0
 
     class Meta:
         model = Product

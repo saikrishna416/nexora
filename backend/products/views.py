@@ -1,4 +1,6 @@
+from django.db.models import Avg, Count, Prefetch
 from django_filters.rest_framework import DjangoFilterBackend
+from .models import Category, Product, ProductImage
 from rest_framework import generics
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import AllowAny, IsAdminUser
@@ -31,7 +33,20 @@ class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class ProductListCreateView(generics.ListCreateAPIView):
-    queryset = Product.objects.select_related("category").all()
+    queryset = (
+    Product.objects
+    .select_related("category")
+    .prefetch_related(
+        Prefetch(
+            "images",
+            queryset=ProductImage.objects.all(),
+        )
+    )
+    .annotate(
+        annotated_average_rating=Avg("reviews__rating"),
+        annotated_review_count=Count("reviews", distinct=True),
+    )
+)
     serializer_class = ProductSerializer
     authentication_classes = []
 
