@@ -66,3 +66,4 @@ wrapt==2.2.1
 cloudinary
 django-cloudinary-storage
 razorpay>=1.4.2,<2.0
+setuptools==80.9.0
