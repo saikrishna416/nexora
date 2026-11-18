@@ -151,9 +151,15 @@ function Navbar() {
   }, [products, searchTerm]);
 
   const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
+  logout();
+
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+  localStorage.removeItem("user");
+  localStorage.removeItem("currentUser");
+
+  window.location.href = "/login";
+};
 
   const handleSearch = (event) => {
     event.preventDefault();

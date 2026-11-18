@@ -7,7 +7,7 @@ const API_BASE_URL =
     ? "http://127.0.0.1:8000/api"
     : "https://nexora-backend-2qxc.onrender.com/api");
 
-  export const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
+export const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
 
 const api = axios.create({
   baseURL: API_BASE_URL.replace(/\/+$/, ""),
@@ -16,11 +16,13 @@ const api = axios.create({
   },
 });
 
+// Attach access token to every request
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("access_token");
 
     if (token && token !== "null" && token !== "undefined") {
+      config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     }
 
@@ -68,8 +70,7 @@ api.interceptors.response.use(
         failedQueue.push({ resolve, reject });
       })
         .then((token) => {
-          originalRequest.headers =
-            originalRequest.headers || {};
+          originalRequest.headers = originalRequest.headers || {};
           originalRequest.headers.Authorization = `Bearer ${token}`;
           return api(originalRequest);
         })
@@ -92,10 +93,8 @@ api.interceptors.response.use(
 
       processQueue(null, newAccessToken);
 
-      originalRequest.headers =
-        originalRequest.headers || {};
-      originalRequest.headers.Authorization =
-        `Bearer ${newAccessToken}`;
+      originalRequest.headers = originalRequest.headers || {};
+      originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
       return api(originalRequest);
     } catch (refreshError) {
