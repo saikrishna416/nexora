@@ -2,7 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import {
-  UserRound, ShoppingCart, Heart, Search, MapPin, Menu, X, ChevronRight,
+  UserRound,
+  ShoppingCart,
+  Heart,
+  Search,
+  MapPin,
+  Menu,
+  X,
+  ChevronRight,
 } from "lucide-react";
 
 // Keep these category values aligned with your Products page.
@@ -18,7 +25,15 @@ const categories = [
   { label: "Sports", value: "Sports & Fitness" },
 ];
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`).replace(/\/$/, "");
+const RAW_API_URL = (
+  import.meta.env.VITE_API_URL ||
+  `${window.location.protocol}//${window.location.hostname}:8000/api`
+).replace(/\/$/, "");
+
+// Normalize base URL so it never produces /api/api/products/
+const API_BASE_URL = RAW_API_URL.endsWith("/api")
+  ? RAW_API_URL
+  : `${RAW_API_URL}/api`;
 
 function Navbar() {
   const { isAuthenticated, logout } = useAuth();
@@ -29,59 +44,92 @@ function Navbar() {
   const [searchTerm, setSearchTerm] = useState(() => params.get("search") || "");
   const [products, setProducts] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+
   const [locationOpen, setLocationOpen] = useState(false);
   const [country, setCountry] = useState(() =>
-    typeof window !== "undefined" ? window.localStorage.getItem("nexoraCountry") || "India" : "India"
+    typeof window !== "undefined"
+      ? window.localStorage.getItem("nexoraCountry") || "India"
+      : "India"
   );
   const [pinCode, setPinCode] = useState(() =>
-    typeof window !== "undefined" ? window.localStorage.getItem("nexoraPinCode") || "" : ""
+    typeof window !== "undefined"
+      ? window.localStorage.getItem("nexoraPinCode") || ""
+      : ""
   );
   const [deliveryCity, setDeliveryCity] = useState(() =>
-    typeof window !== "undefined" ? window.localStorage.getItem("nexoraDeliveryCity") || "" : ""
+    typeof window !== "undefined"
+      ? window.localStorage.getItem("nexoraDeliveryCity") || ""
+      : ""
   );
+
   const [draftCountry, setDraftCountry] = useState(country);
   const [draftPinCode, setDraftPinCode] = useState(pinCode);
   const [locationError, setLocationError] = useState("");
-  const [pinLookup, setPinLookup] = useState({ pin: "", status: "idle", district: "", state: "" });
-
-  // Keep the input initialized from the URL on mount. Search submissions
-  // and suggestion clicks update this state directly, avoiding effect-driven renders.
+  const [pinLookup, setPinLookup] = useState({
+    pin: "",
+    status: "idle",
+    district: "",
+    city: "",
+    state: "",
+  });
 
   // Fetch Indian postal details after the user finishes typing a valid PIN.
-  // State updates happen in the asynchronous callback, not synchronously in the effect.
   useEffect(() => {
     const cleanPin = draftPinCode.trim();
     if (draftCountry !== "India" || !/^\d{6}$/.test(cleanPin)) return undefined;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(async () => {
-      setPinLookup({ pin: cleanPin, status: "loading", district: "", state: "" });
+      setPinLookup({
+        pin: cleanPin,
+        status: "loading",
+        district: "",
+        city: "",
+        state: "",
+      });
       try {
         const response = await fetch(
           `https://api.postalpincode.in/pincode/${cleanPin}`,
           { signal: controller.signal }
         );
         if (!response.ok) throw new Error("PIN lookup request failed");
+
         const data = await response.json();
         const record = data?.[0];
 
-        if (record?.Status === "Success" && Array.isArray(record.PostOffice) && record.PostOffice.length) {
+        if (
+          record?.Status === "Success" &&
+          Array.isArray(record.PostOffice) &&
+          record.PostOffice.length
+        ) {
           const office = record.PostOffice[0];
           setPinLookup({
             pin: cleanPin,
             status: "success",
             district: office.District || "",
             city: String(office.Name || office.Block || office.District || "")
-              .replace(/\\s+(H\\.O\\.|S\\.O\\.|B\\.O\\.)$/i, "")
+              .replace(/\s+(H\.O\.|S\.O\.|B\.O\.)$/i, "")
               .trim(),
             state: office.State || "",
           });
         } else {
-          setPinLookup({ pin: cleanPin, status: "invalid", district: "", state: "" });
+          setPinLookup({
+            pin: cleanPin,
+            status: "invalid",
+            district: "",
+            city: "",
+            state: "",
+          });
         }
       } catch (error) {
         if (error.name !== "AbortError") {
-          setPinLookup({ pin: cleanPin, status: "unavailable", district: "", state: "" });
+          setPinLookup({
+            pin: cleanPin,
+            status: "unavailable",
+            district: "",
+            city: "",
+            state: "",
+          });
         }
       }
     }, 350);
@@ -95,37 +143,43 @@ function Navbar() {
   const currentPinLookup =
     pinLookup.pin === draftPinCode.trim() && draftCountry === "India"
       ? pinLookup
-      : { pin: draftPinCode.trim(), status: "idle", district: "", city: "", state: "" };
+      : {
+          pin: draftPinCode.trim(),
+          status: "idle",
+          district: "",
+          city: "",
+          state: "",
+        };
 
-  // Load product data from common Django REST endpoint patterns.
+  // Load product data from Django REST endpoint without duplicate /api/api/ calls.
   useEffect(() => {
     const controller = new AbortController();
 
     async function loadProducts() {
       const urls = [
         `${API_BASE_URL}/products/?page_size=100`,
-        `${API_BASE_URL}/api/products/?page_size=100`,
         `${API_BASE_URL}/products/`,
-        `${API_BASE_URL}/api/products/`,
       ];
 
       for (const url of urls) {
         try {
           const response = await fetch(url, { signal: controller.signal });
           if (!response.ok) continue;
+
           const data = await response.json();
           const list = Array.isArray(data)
             ? data
-            : (data.results || data.products || data.data || data.items || []);
+            : data.results || data.products || data.data || data.items || [];
+
           if (Array.isArray(list) && list.length) {
             setProducts(list);
             return;
           }
         } catch (error) {
           if (error.name === "AbortError") return;
-          // Try the next common endpoint if this one is unavailable.
         }
       }
+
       if (!controller.signal.aborted) setProducts([]);
     }
 
@@ -136,30 +190,44 @@ function Navbar() {
   const suggestions = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
     if (!query) return [];
+
     return products
       .filter((product) => {
         const name = String(
-          product.name || product.title || product.product_name || product.productName || ""
+          product.name ||
+            product.title ||
+            product.product_name ||
+            product.productName ||
+            ""
         ).toLowerCase();
         const categoryValue =
-          product.category_name || product.category?.name || product.category?.title || product.category || "";
+          product.category_name ||
+          product.category?.name ||
+          product.category?.title ||
+          product.category ||
+          "";
         const category = String(categoryValue).toLowerCase();
         const description = String(product.description || "").toLowerCase();
-        return name.includes(query) || category.includes(query) || description.includes(query);
+
+        return (
+          name.includes(query) ||
+          category.includes(query) ||
+          description.includes(query)
+        );
       })
       .slice(0, 6);
   }, [products, searchTerm]);
 
   const handleLogout = () => {
-  logout();
-
-  localStorage.removeItem("access_token");
-  localStorage.removeItem("refresh_token");
-  localStorage.removeItem("user");
-  localStorage.removeItem("currentUser");
-
-  window.location.href = "/login";
-};
+    logout();
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("currentUser");
+    window.location.href = "/login";
+  };
 
   const handleSearch = (event) => {
     event.preventDefault();
@@ -167,6 +235,7 @@ function Navbar() {
     const search = searchTerm.trim();
     const queryParams = new URLSearchParams();
     if (search) queryParams.set("search", search);
+
     navigate({
       pathname: "/products",
       search: queryParams.toString() ? `?${queryParams.toString()}` : "",
@@ -175,12 +244,26 @@ function Navbar() {
 
   const selectSuggestion = (product) => {
     setShowSuggestions(false);
-    setSearchTerm(product.name || product.title || product.product_name || product.productName || "");
+    setSearchTerm(
+      product.name ||
+        product.title ||
+        product.product_name ||
+        product.productName ||
+        ""
+    );
+
     if (product.id != null) {
       navigate(`/products/${product.id}`);
     } else {
       const queryParams = new URLSearchParams();
-      queryParams.set("search", product.name || product.title || product.product_name || product.productName || searchTerm);
+      queryParams.set(
+        "search",
+        product.name ||
+          product.title ||
+          product.product_name ||
+          product.productName ||
+          searchTerm
+      );
       navigate(`/products?${queryParams.toString()}`);
     }
   };
@@ -192,22 +275,27 @@ function Navbar() {
       setLocationError("Enter a valid 6-digit PIN code.");
       return;
     }
+
     try {
       window.localStorage.setItem("nexoraCountry", draftCountry);
       window.localStorage.setItem("nexoraPinCode", cleanPin);
       if (draftCountry === "India" && currentPinLookup.status === "success") {
-        window.localStorage.setItem("nexoraDeliveryCity", currentPinLookup.city || currentPinLookup.district || "");
+        window.localStorage.setItem(
+          "nexoraDeliveryCity",
+          currentPinLookup.city || currentPinLookup.district || ""
+        );
       } else {
         window.localStorage.removeItem("nexoraDeliveryCity");
       }
     } catch (error) {
       console.error("Could not save delivery location:", error);
     }
+
     setCountry(draftCountry);
     setPinCode(cleanPin);
     const detectedCity =
       draftCountry === "India" && currentPinLookup.status === "success"
-        ? (currentPinLookup.city || currentPinLookup.district || "")
+        ? currentPinLookup.city || currentPinLookup.district || ""
         : "";
     setDeliveryCity(detectedCity);
     setLocationError("");
@@ -216,11 +304,14 @@ function Navbar() {
 
   const categoryIsActive = (value) =>
     location.pathname === "/products" &&
-    (params.get("category") || "").trim().toLowerCase() === value.trim().toLowerCase();
+    (params.get("category") || "").trim().toLowerCase() ===
+      value.trim().toLowerCase();
 
   const isProductsPage = location.pathname === "/products";
   const isHome = location.pathname === "/";
-  const isAllProducts = isProductsPage && !params.get("category") && !params.get("search");
+  const isAllProducts =
+    isProductsPage && !params.get("category") && !params.get("search");
+
   const navClass = (active) => `nexora-nav-link${active ? " active" : ""}`;
 
   return (
@@ -254,7 +345,11 @@ function Navbar() {
             <ChevronRight className="nexora-delivery-chevron" size={14} />
           </button>
 
-          <form className="nexora-search" onSubmit={handleSearch} role="search">
+          <form
+            className="nexora-search"
+            onSubmit={handleSearch}
+            role="search"
+          >
             <input
               type="search"
               aria-label="Search products"
@@ -270,6 +365,7 @@ function Navbar() {
               }}
               autoComplete="off"
             />
+
             {searchTerm && (
               <button
                 type="button"
@@ -283,6 +379,7 @@ function Navbar() {
                 <X size={16} />
               </button>
             )}
+
             <button type="submit" aria-label="Search">
               <Search size={21} />
             </button>
@@ -291,26 +388,45 @@ function Navbar() {
               <div className="nexora-suggestions">
                 {suggestions.length > 0 ? (
                   <>
-                    <div className="nexora-suggestions-heading">Suggested products</div>
+                    <div className="nexora-suggestions-heading">
+                      Suggested products
+                    </div>
                     {suggestions.map((product, index) => (
                       <button
                         type="button"
                         className="nexora-suggestion"
-                        key={product.id ?? `${product.name || product.title}-${index}`}
+                        key={
+                          product.id ??
+                          `${product.name || product.title}-${index}`
+                        }
                         onMouseDown={(event) => event.preventDefault()}
                         onClick={() => selectSuggestion(product)}
                       >
-                        <span className="nexora-suggestion-icon"><Search size={15} /></span>
+                        <span className="nexora-suggestion-icon">
+                          <Search size={15} />
+                        </span>
                         <span className="nexora-suggestion-copy">
-                          <strong>{product.name || product.title || product.product_name || product.productName || "Product"}</strong>
+                          <strong>
+                            {product.name ||
+                              product.title ||
+                              product.product_name ||
+                              product.productName ||
+                              "Product"}
+                          </strong>
                           {(product.category_name || product.category) && (
-                            <small>{product.category_name || product.category}</small>
+                            <small>
+                              {product.category_name || product.category}
+                            </small>
                           )}
                         </span>
                         <ChevronRight size={16} />
                       </button>
                     ))}
-                    <button type="submit" className="nexora-view-all" onMouseDown={(event) => event.preventDefault()}>
+                    <button
+                      type="submit"
+                      className="nexora-view-all"
+                      onMouseDown={(event) => event.preventDefault()}
+                    >
                       Search for “{searchTerm.trim()}”
                     </button>
                   </>
@@ -327,20 +443,37 @@ function Navbar() {
             {isAuthenticated ? (
               <>
                 <Link to="/profile" className="nexora-icon-link">
-                  <UserRound size={21} /><span>Account</span>
+                  <UserRound size={21} />
+                  <span>Account</span>
                 </Link>
-                <Link to="/orders" className="nexora-icon-link">Orders</Link>
-                <Link to="/wishlist" className="nexora-icon-link" aria-label="Wishlist" title="Wishlist">
-                  <Heart size={21} /><span>Wishlist</span>
+                <Link to="/orders" className="nexora-icon-link">
+                  Orders
+                </Link>
+                <Link
+                  to="/wishlist"
+                  className="nexora-icon-link"
+                  aria-label="Wishlist"
+                  title="Wishlist"
+                >
+                  <Heart size={21} />
+                  <span>Wishlist</span>
                 </Link>
               </>
             ) : (
               <Link to="/login" className="nexora-icon-link">
-                <UserRound size={21} /><span>Sign in</span>
+                <UserRound size={21} />
+                <span>Sign in</span>
               </Link>
             )}
-            <Link to="/cart" className="nexora-icon-link" aria-label="Shopping cart" title="Shopping cart">
-              <ShoppingCart size={25} /><span>Cart</span>
+
+            <Link
+              to="/cart"
+              className="nexora-icon-link"
+              aria-label="Shopping cart"
+              title="Shopping cart"
+            >
+              <ShoppingCart size={25} />
+              <span>Cart</span>
             </Link>
           </div>
         </div>
@@ -349,7 +482,9 @@ function Navbar() {
           <Link to="/products" className={navClass(isAllProducts)}>
             <Menu size={16} /> All Products
           </Link>
-          <Link to="/" className={navClass(isHome)}>Home</Link>
+          <Link to="/" className={navClass(isHome)}>
+            Home
+          </Link>
           {categories.map((category) => (
             <Link
               key={category.value}
@@ -361,9 +496,20 @@ function Navbar() {
           ))}
           <div className="nexora-nav-spacer" />
           {isAuthenticated ? (
-            <button type="button" onClick={handleLogout} className="nexora-logout">Logout</button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="nexora-logout"
+            >
+              Logout
+            </button>
           ) : (
-            <Link to="/register" className={navClass(location.pathname === "/register")}>Create Account</Link>
+            <Link
+              to="/register"
+              className={navClass(location.pathname === "/register")}
+            >
+              Create Account
+            </Link>
           )}
         </nav>
       </header>
@@ -384,17 +530,31 @@ function Navbar() {
           >
             <div className="nexora-modal-header">
               <div>
-                <span className="nexora-modal-eyebrow"><MapPin size={15} /> DELIVERY PREFERENCES</span>
+                <span className="nexora-modal-eyebrow">
+                  <MapPin size={15} /> DELIVERY PREFERENCES
+                </span>
                 <h2 id="nexora-location-title">Choose your location</h2>
                 <p>Check product availability and delivery options near you.</p>
               </div>
-              <button type="button" className="nexora-modal-close" onClick={() => setLocationOpen(false)} aria-label="Close">
+              <button
+                type="button"
+                className="nexora-modal-close"
+                onClick={() => setLocationOpen(false)}
+                aria-label="Close"
+              >
                 <X size={20} />
               </button>
             </div>
+
             <form onSubmit={applyLocation}>
-              <label className="nexora-field-label" htmlFor="nexora-country">Country or region</label>
-              <select id="nexora-country" value={draftCountry} onChange={(event) => setDraftCountry(event.target.value)}>
+              <label className="nexora-field-label" htmlFor="nexora-country">
+                Country or region
+              </label>
+              <select
+                id="nexora-country"
+                value={draftCountry}
+                onChange={(event) => setDraftCountry(event.target.value)}
+              >
                 <option value="India">India</option>
                 <option value="United States">United States</option>
                 <option value="United Kingdom">United Kingdom</option>
@@ -403,7 +563,9 @@ function Navbar() {
                 <option value="Singapore">Singapore</option>
               </select>
 
-              <label className="nexora-field-label" htmlFor="nexora-pin">6-digit PIN code</label>
+              <label className="nexora-field-label" htmlFor="nexora-pin">
+                6-digit PIN code
+              </label>
               <input
                 id="nexora-pin"
                 type="text"
@@ -413,25 +575,55 @@ function Navbar() {
                 placeholder="e.g. 110001"
                 value={draftPinCode}
                 onChange={(event) => {
-                  setDraftPinCode(event.target.value.replace(/\D/g, "").slice(0, 6));
+                  setDraftPinCode(
+                    event.target.value.replace(/\D/g, "").slice(0, 6)
+                  );
                   setLocationError("");
                 }}
               />
-              {currentPinLookup.status === "loading" && <p className="nexora-pin-status">Looking up PIN code…</p>}
+
+              {currentPinLookup.status === "loading" && (
+                <p className="nexora-pin-status">Looking up PIN code…</p>
+              )}
+
               {currentPinLookup.status === "success" && (
                 <div className="nexora-pin-result">
                   <MapPin size={16} />
                   <span>
-                    <strong>{currentPinLookup.city || currentPinLookup.district}{currentPinLookup.state ? `, ${currentPinLookup.state}` : ""}</strong>
+                    <strong>
+                      {currentPinLookup.city || currentPinLookup.district}
+                      {currentPinLookup.state
+                        ? `, ${currentPinLookup.state}`
+                        : ""}
+                    </strong>
                     <small>Location found for this PIN code</small>
                   </span>
                 </div>
               )}
-              {currentPinLookup.status === "invalid" && <p className="nexora-location-error">PIN code not found. Please check the 6 digits.</p>}
-              {currentPinLookup.status === "unavailable" && <p className="nexora-pin-status">Could not fetch location right now. Check your connection and try again.</p>}
-              {locationError && <p className="nexora-location-error">{locationError}</p>}
-              <button type="submit" className="nexora-apply-location">Apply location</button>
-              <p className="nexora-location-note">Your selection is saved in this browser for your next visit.</p>
+
+              {currentPinLookup.status === "invalid" && (
+                <p className="nexora-location-error">
+                  PIN code not found. Please check the 6 digits.
+                </p>
+              )}
+
+              {currentPinLookup.status === "unavailable" && (
+                <p className="nexora-pin-status">
+                  Could not fetch location right now. Check your connection and
+                  try again.
+                </p>
+              )}
+
+              {locationError && (
+                <p className="nexora-location-error">{locationError}</p>
+              )}
+
+              <button type="submit" className="nexora-apply-location">
+                Apply location
+              </button>
+              <p className="nexora-location-note">
+                Your selection is saved in this browser for your next visit.
+              </p>
             </form>
           </section>
         </div>
