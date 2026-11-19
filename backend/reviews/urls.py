@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     ProductReviewListCreateView,
     ReviewDetailView,
+    UserReviewListView,
 )
 
 urlpatterns = [
@@ -10,6 +11,11 @@ urlpatterns = [
         "products/<int:product_id>/",
         ProductReviewListCreateView.as_view(),
         name="product-reviews"
+    ),
+    path(
+        "my-reviews/",
+        UserReviewListView.as_view(),
+        name="my-reviews"
     ),
     path(
         "<int:pk>/",

@@ -1,10 +1,15 @@
 from rest_framework import serializers
 
-from .models import Review
+from .models import Review, ReviewImage
+
+
+class ReviewImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReviewImage
+        fields = ["id", "image", "created_at"]
 
 
 class ReviewSerializer(serializers.ModelSerializer):
-
     username = serializers.CharField(
         source="user.username",
         read_only=True
@@ -14,6 +19,8 @@ class ReviewSerializer(serializers.ModelSerializer):
         source="product.name",
         read_only=True
     )
+
+    images = ReviewImageSerializer(many=True, read_only=True)
 
     class Meta:
         model = Review
@@ -25,6 +32,9 @@ class ReviewSerializer(serializers.ModelSerializer):
             "product_name",
             "rating",
             "comment",
+            "image",
+            "images",
+            "is_verified_purchase",
             "created_at",
             "updated_at",
         ]
@@ -34,6 +44,8 @@ class ReviewSerializer(serializers.ModelSerializer):
             "user",
             "username",
             "product_name",
+            "images",
+            "is_verified_purchase",
             "created_at",
             "updated_at",
         ]

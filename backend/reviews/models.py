@@ -21,6 +21,15 @@ class Review(models.Model):
 
     comment = models.TextField(blank=True)
 
+    # Optional single cover image on the review itself
+    image = models.ImageField(
+        upload_to="reviews/",
+        blank=True,
+        null=True,
+    )
+
+    is_verified_purchase = models.BooleanField(default=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     updated_at = models.DateTimeField(auto_now=True)
@@ -36,3 +45,20 @@ class Review(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.product.name} ({self.rating})"
+
+
+class ReviewImage(models.Model):
+    """Additional gallery images for a review."""
+    review = models.ForeignKey(
+        Review,
+        on_delete=models.CASCADE,
+        related_name="images",
+    )
+    image = models.ImageField(upload_to="reviews/gallery/")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["id"]
+
+    def __str__(self):
+        return f"Image for review {self.review_id}"

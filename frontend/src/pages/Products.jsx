@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronRight, Star } from "lucide-react";
 
 import api from "../services/api";
+import { productMatchesSearch } from "../utils/productSearch";
 
 
 
@@ -43,62 +44,44 @@ function getProductCategory(product) {
 }
 
 function Products() {
-
   const navigate = useNavigate();
-
   const [searchParams] = useSearchParams();
-
   const selectedCategory = searchParams.get("category") || "";
+  const searchQuery = (searchParams.get("search") || "").trim();
 
   const [products, setProducts] = useState([]);
-
-  const [loading, setLoading] = useState(true);
-
+  const [loadedSearchQuery, setLoadedSearchQuery] = useState(null);
   const [error, setError] = useState("");
-
-
+  const loading = loadedSearchQuery !== searchQuery;
 
   useEffect(() => {
-
     let active = true;
 
-
+    const endpoint = searchQuery
+      ? `/products/?page_size=100&search=${encodeURIComponent(searchQuery)}`
+      : `/products/?page_size=100`;
 
     api
-
-      .get("/products/?page_size=100")
-
+      .get(endpoint)
       .then((response) => {
-
         const data = response?.data?.results ?? response?.data;
-
-        if (active) setProducts(Array.isArray(data) ? data : []);
-
+        if (active) {
+          setProducts(Array.isArray(data) ? data : []);
+          setError("");
+        }
       })
-
       .catch((err) => {
-
         console.error("Failed to load products:", err);
-
         if (active) setError("Failed to load products. Please try again.");
-
       })
-
       .finally(() => {
-
-        if (active) setLoading(false);
-
+        if (active) setLoadedSearchQuery(searchQuery);
       });
 
-
-
     return () => {
-
       active = false;
-
     };
-
-  }, []);
+  }, [searchQuery]);
 
 
 
@@ -190,193 +173,116 @@ function Products() {
 
 
 
-  const filteredProducts = !selectedCategory
+  const matchesCategory = (product) => {
+    if (!selectedCategory) return true;
+    const categories = getCategoryPath(product);
+    const selected = normalize(selectedCategory);
+    const name = normalize(product.name || product.title || product.product_name || product.productName || "");
 
-    ? products
+    // A specific category must be present in the product's category metadata.
+    if (selected === "mobiles" || selected === "mobile") {
+      const explicitlyMobile = hasAny(categories, ["mobiles", "mobile phones", "mobile", "smartphones", "smart phones", "cell phones"]);
+      const broadElectronics = hasAny(categories, ["electronics", "electronic"]);
+      const titleLooksMobile = hasAny([name], ["iphone", "smartphone", "mobile phone", "android phone", "cell phone", "feature phone"]);
+      const titleLooksComputer = hasAny([name], ["laptop", "notebook", "chromebook", "desktop", "monitor", "tablet", "ipad", "keyboard", "mouse", "headphone", "earphone", "speaker"]);
+      return explicitlyMobile || (broadElectronics && titleLooksMobile && !titleLooksComputer);
+    }
 
-    : products.filter((product) => {
+    if (selected === "tvs appliances" || selected === "tv appliances" || selected.includes("appliance")) {
+      return hasAny(categories, ["tvs and appliances", "tv and appliances", "televisions", "tv", "home appliances", "appliances"]);
+    }
 
-        const categories = getCategoryPath(product);
+    if (selected === "beauty" || selected.includes("beauty")) {
+      return hasAny(categories, ["beauty", "beauty and personal care", "personal care", "cosmetics", "skincare", "skin care", "hair care"]);
+    }
 
-        const selected = normalize(selectedCategory);
+    if (selected === "sports" || selected.includes("sport") || selected.includes("fitness")) {
+      return hasAny(categories, ["sports", "sports and fitness", "sport and fitness", "fitness", "sports equipment", "sportswear"]);
+    }
 
-        const name = normalize(product.name || product.title || product.product_name || product.productName || "");
+    if (selected.includes("women") && selected.includes("fashion")) {
+      const gender = normalize(
+        product.gender ||
+        product.target_gender ||
+        product.for_gender ||
+        product.audience ||
+        product.department ||
+        (typeof product.subcategory === "string"
+          ? product.subcategory
+          : product.subcategory?.name) ||
+        (typeof product.sub_category === "string"
+          ? product.sub_category
+          : product.sub_category?.name) ||
+        ""
+      );
+      const womenCategory = hasAny(categories, [
+        "womens fashion", "women fashion", "womens clothing", "women clothing",
+        "womenswear", "women apparel", "womens apparel", "womens shoes",
+        "womens footwear", "women accessories", "female fashion", "women", "womens"
+      ]);
+      const isWomen = [
+        "women", "womens", "female", "woman", "womens fashion"
+      ].includes(gender);
+      const isMen = [
+        "men", "mens", "male", "man", "mens fashion"
+      ].includes(gender);
+      return !isMen && (womenCategory || isWomen);
+    }
 
+    if (selected.includes("men") && selected.includes("fashion")) {
+      const gender = normalize(
+        product.gender || product.target_gender || product.for_gender ||
+        product.audience || product.department || product.subcategory?.name ||
+        product.sub_category?.name || ""
+      );
+      const menCategory = hasAny(categories, [
+        "mens fashion", "men fashion", "mens clothing", "men clothing",
+        "menswear", "men apparel", "mens apparel", "mens shoes",
+        "mens footwear", "mens accessories", "men accessories", "male fashion",
+        "mens", "men"
+      ]);
+      const womenCategory = hasAny(categories, [
+        "womens fashion", "women fashion", "womens clothing", "women clothing",
+        "womenswear", "women apparel", "womens apparel", "womens shoes",
+        "womens footwear", "women accessories", "female fashion", "women", "womens"
+      ]);
+      return !womenCategory && (menCategory || ["men", "mens", "male", "man", "mens fashion"].includes(gender));
+    }
 
+    if (selected === "electronics" || selected.includes("electronics")) {
+      const isSpecificMobile = hasAny(categories, [
+        "mobiles", "mobile", "mobile phones", "smartphones", "smart phones",
+        "cell phones", "cellphone"
+      ]);
+      const isAppliance = hasAny(categories, [
+        "tvs and appliances", "tv and appliances", "home appliances", "appliances", "televisions"
+      ]);
+      const productName = normalize(
+        product.name || product.title || product.product_name || product.productName || ""
+      );
+      const looksLikePhone = hasAny([productName], [
+        "iphone", "smartphone", "mobile phone", "android phone", "cell phone", "feature phone"
+      ]);
+      if (isSpecificMobile || isAppliance || looksLikePhone) return false;
+      return hasAny(categories, ["electronics", "electronic"]);
+    }
 
-        // A specific category must be present in the product's category metadata.
+    if (selected === "home and living" || selected.includes("home and living")) {
+      return hasAny(categories, ["home and living", "home living", "home decor", "furniture", "kitchen and dining"]);
+    }
 
-        if (selected === "mobiles" || selected === "mobile") {
+    if (selected === "kids" || selected.includes("kids")) {
+      return hasAny(categories, ["kids", "children", "kids fashion", "toys"]);
+    }
 
-          const explicitlyMobile = hasAny(categories, ["mobiles", "mobile phones", "mobile", "smartphones", "smart phones", "cell phones"]);
+    return categories.some((category) => category === selected);
+  };
 
-          const broadElectronics = hasAny(categories, ["electronics", "electronic"]);
-
-          const titleLooksMobile = hasAny([name], ["iphone", "smartphone", "mobile phone", "android phone", "cell phone", "feature phone"]);
-
-          const titleLooksComputer = hasAny([name], ["laptop", "notebook", "chromebook", "desktop", "monitor", "tablet", "ipad", "keyboard", "mouse", "headphone", "earphone", "speaker"]);
-
-          return explicitlyMobile || (broadElectronics && titleLooksMobile && !titleLooksComputer);
-
-        }
-
-
-
-        if (selected === "tvs appliances" || selected === "tv appliances" || selected.includes("appliance")) {
-
-          return hasAny(categories, ["tvs and appliances", "tv and appliances", "televisions", "tv", "home appliances", "appliances"]);
-
-        }
-
-
-
-        if (selected === "beauty" || selected.includes("beauty")) {
-
-          return hasAny(categories, ["beauty", "beauty and personal care", "personal care", "cosmetics", "skincare", "skin care", "hair care"]);
-
-        }
-
-
-
-        if (selected === "sports" || selected.includes("sport") || selected.includes("fitness")) {
-
-          return hasAny(categories, ["sports", "sports and fitness", "sport and fitness", "fitness", "sports equipment", "sportswear"]);
-
-        }
-
-
-
-     
-if (selected.includes("women") && selected.includes("fashion")) {
-  const gender = normalize(
-    product.gender ||
-    product.target_gender ||
-    product.for_gender ||
-    product.audience ||
-    product.department ||
-    (typeof product.subcategory === "string"
-      ? product.subcategory
-      : product.subcategory?.name) ||
-    (typeof product.sub_category === "string"
-      ? product.sub_category
-      : product.sub_category?.name) ||
-    ""
+  const filteredProducts = products.filter(
+    (product) =>
+      matchesCategory(product) &&
+      productMatchesSearch(product, searchQuery, getCategoryPath(product).join(" "))
   );
-
-  const womenCategory = hasAny(categories, [
-    "womens fashion",
-    "women fashion",
-    "womens clothing",
-    "women clothing",
-    "womenswear",
-    "women apparel",
-    "womens apparel",
-    "womens shoes",
-    "womens footwear",
-    "women accessories",
-    "female fashion",
-    "women",
-    "womens"
-  ]);
-
-  const isWomen = [
-    "women",
-    "womens",
-    "female",
-    "woman",
-    "womens fashion"
-  ].includes(gender);
-
-  const isMen = [
-    "men",
-    "mens",
-    "male",
-    "man",
-    "mens fashion"
-  ].includes(gender);
-
-  return !isMen && (womenCategory || isWomen);
-}
-
-
-
-
-
-        if (selected.includes("men") && selected.includes("fashion")) {
-          // Match category/subcategory metadata first. Some APIs store gender
-          // separately or use a generic Fashion/Clothing category.
-          const gender = normalize(
-            product.gender || product.target_gender || product.for_gender ||
-            product.audience || product.department || product.subcategory?.name ||
-            product.sub_category?.name || ""
-          );
-          const menCategory = hasAny(categories, [
-            "mens fashion", "men fashion", "mens clothing", "men clothing",
-            "menswear", "men apparel", "mens apparel", "mens shoes",
-            "mens footwear", "mens accessories", "men accessories", "male fashion",
-            "mens", "men"
-          ]);
-          const womenCategory = hasAny(categories, [
-            "womens fashion", "women fashion", "womens clothing", "women clothing",
-            "womenswear", "women apparel", "womens apparel", "womens shoes",
-            "womens footwear", "women accessories", "female fashion", "women", "womens"
-          ]);
-          return !womenCategory && (menCategory || ["men", "mens", "male", "man", "mens fashion"].includes(gender));
-        }
-
-        if (selected === "electronics" || selected.includes("electronics")) {
-
-          // Electronics excludes products assigned to the more specific Mobiles
-
-          // and TVs/Appliances categories.
-
-          const isSpecificMobile = hasAny(categories, [
-            "mobiles", "mobile", "mobile phones", "smartphones", "smart phones",
-            "cell phones", "cellphone"
-          ]);
-
-          const isAppliance = hasAny(categories, [
-            "tvs and appliances", "tv and appliances", "home appliances", "appliances", "televisions"
-          ]);
-
-          // If the database only labels a phone as Electronics, keep it out of
-          // the general Electronics page. Do not use descriptions for filtering.
-          const productName = normalize(
-            product.name || product.title || product.product_name || product.productName || ""
-          );
-          const looksLikePhone = hasAny([productName], [
-            "iphone", "smartphone", "mobile phone", "android phone", "cell phone", "feature phone"
-          ]);
-
-          if (isSpecificMobile || isAppliance || looksLikePhone) return false;
-
-          return hasAny(categories, ["electronics", "electronic"]);
-
-        }
-
-
-
-        if (selected === "home and living" || selected.includes("home and living")) {
-
-          return hasAny(categories, ["home and living", "home living", "home decor", "furniture", "kitchen and dining"]);
-
-        }
-
-
-
-        if (selected === "kids" || selected.includes("kids")) {
-
-          return hasAny(categories, ["kids", "children", "kids fashion", "toys"]);
-
-        }
-
-
-
-        // For other categories, require an exact normalized category match.
-
-        return categories.some((category) => category === selected);
-
-      });
 
 
 
@@ -430,9 +336,19 @@ if (selected.includes("women") && selected.includes("fashion")) {
 
             <span className="nex-products-eyebrow">THE NEXORA COLLECTION</span>
 
-            <h1>{selectedCategory || "Find your next favorite."}</h1>
+            <h1>
+              {searchQuery
+                ? `Results for "${searchQuery}"`
+                : selectedCategory || "Find your next favorite."}
+            </h1>
 
-            <p>{selectedCategory ? `Products in ${selectedCategory}` : "Shop smarter. Live better."}</p>
+            <p>
+              {searchQuery
+                ? `Showing products matching "${searchQuery}"${selectedCategory ? ` in ${selectedCategory}` : ""}`
+                : selectedCategory
+                ? `Products in ${selectedCategory}`
+                : "Shop smarter. Live better."}
+            </p>
 
           </div>
 
@@ -450,9 +366,21 @@ if (selected.includes("women") && selected.includes("fashion")) {
 
           <div className="nex-products-empty">
 
-            <h3>{selectedCategory ? `No products found in ${selectedCategory}` : "No products available"}</h3>
+            <h3>
+              {searchQuery
+                ? `No products found for "${searchQuery}"`
+                : selectedCategory
+                ? `No products found in ${selectedCategory}`
+                : "No products available"}
+            </h3>
 
-            <p>{selectedCategory ? "Check that your products use this category in the database." : "Products will appear here when they are available in the catalogue."}</p>
+            <p>
+              {searchQuery
+                ? "Try a different search term or browse by category."
+                : selectedCategory
+                ? "Check that your products use this category in the database."
+                : "Products will appear here when they are available in the catalogue."}
+            </p>
 
           </div>
 
@@ -753,11 +681,8 @@ const productsStyles = `
     display: block;
 
     width: 100%;
-
     height: 100%;
-
     max-width: 100%;
-
     max-height: 100%;
 
     object-fit: contain;

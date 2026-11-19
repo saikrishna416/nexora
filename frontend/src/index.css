@@ -27,6 +27,17 @@ body {
   overflow-x: clip;
 }
 
+html,
+body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
 #root {
   width: 100%;
   min-height: 100vh;
@@ -59,6 +70,13 @@ input,
 textarea,
 select {
   min-width: 0;
+}
+
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-ms-clear {
+  display: none;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 button,
@@ -157,14 +175,12 @@ footer {
   gap: clamp(12px, 2vw, 24px);
 }
 
-.nx-department-image-wrap,
-.nx-product-image {
+.nx-department-image-wrap {
   width: 100%;
   overflow: hidden;
 }
 
-.nx-department-image-wrap img,
-.nx-product-image img {
+.nx-department-image-wrap img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -271,10 +287,6 @@ footer {
     height: 130px;
   }
 
-  .nx-product-image {
-    height: 160px;
-  }
-
   .nx-quick-links,
   .nx-deal-list {
     grid-template-columns: minmax(0, 1fr);
@@ -314,9 +326,6 @@ footer {
     height: 110px;
   }
 
-  .nx-product-image {
-    height: 140px;
-  }
 }
 
 /* Prevent common fixed-width elements from causing horizontal overflow */
@@ -351,15 +360,3 @@ nav::-webkit-scrollbar,
     transition-duration: 0.01ms !important;
   }
 }
-
-/* ===== Cart page responsive layout ===== */
-.nx-cart-page { width: min(100%, 1100px); margin: 0 auto; padding: 45px 24px; min-width: 0; }
-.nx-cart-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 30px; align-items: start; min-width: 0; }
-.nx-cart-item { display: flex; gap: 20px; min-width: 0; padding: 20px; margin-bottom: 18px; border: 1px solid #e5e7eb; border-radius: 10px; background: white; }
-.nx-cart-item-image { display: flex; align-items: center; justify-content: center; width: 130px; height: 130px; flex: 0 0 130px; overflow: hidden; border-radius: 8px; background: #f3f4f6; }
-.nx-cart-item-image img { width: 100%; height: 100%; object-fit: contain; }
-.nx-cart-item-info { flex: 1; min-width: 0; }
-.nx-cart-summary { min-width: 0; padding: 25px; border: 1px solid #e5e7eb; border-radius: 10px; background: #f9fafb; position: sticky; top: 20px; }
-@media (max-width: 800px) { .nx-cart-layout { grid-template-columns: minmax(0, 1fr); gap: 18px; } .nx-cart-summary { position: static; grid-row: 1; } .nx-cart-page { padding: 30px 18px; } }
-@media (max-width: 560px) { .nx-cart-page { padding: 24px 12px; } .nx-cart-page h1 { font-size: clamp(28px, 8vw, 36px) !important; margin-bottom: 20px !important; } .nx-cart-item { gap: 12px; padding: 12px; } .nx-cart-item-image { width: 94px; height: 110px; flex-basis: 94px; } .nx-cart-item-info h2 { font-size: 17px !important; line-height: 1.3; overflow-wrap: anywhere; } .nx-cart-summary { padding: 18px; } .nx-cart-summary h2 { font-size: 20px !important; } .nx-cart-summary button { min-height: 44px; } }
-@media (max-width: 360px) { .nx-cart-item { gap: 9px; padding: 9px; } .nx-cart-item-image { width: 76px; height: 92px; flex-basis: 76px; } .nx-cart-item-info h2 { font-size: 15px !important; } .nx-cart-summary { padding: 14px; } }

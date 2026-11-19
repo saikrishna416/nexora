@@ -1,36 +1,159 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import api from "../services/api";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Minus,
+  Package,
+  Plus,
+  ShieldCheck,
+  ShoppingCart,
+  Trash2,
+  Truck,
+} from "lucide-react";
+import api, { API_ORIGIN } from "../services/api";
+import "./CartWishlist.css";
 
 const GUEST_CART_KEY = "nexora_guest_cart";
+const CART_SELECTIONS_KEY = "nexora_cart_selections";
+
+const formatINR = (amount) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(Number(amount) || 0);
+
+function hasAccessToken() {
+  const token = localStorage.getItem("access_token");
+  return Boolean(token && !["null", "undefined", ""].includes(token.trim()));
+}
+
+function buildGuestCart(items) {
+  const normalized = items.map((item) => ({
+    ...item,
+    subtotal: getItemPrice(item) * Number(item.quantity || 1),
+  }));
+  return {
+    items: normalized,
+    total: normalized.reduce((sum, item) => sum + Number(item.subtotal || 0), 0),
+  };
+}
+
+function getItemPrice(item) {
+  return Number(
+    item.selected_price ??
+      item.product_price ??
+      item.price ??
+      item.product?.price
+  ) || 0;
+}
+
+function getItemMrp(item) {
+  const mrp = Number(
+    item.selected_mrp ??
+      item.mrp ??
+      item.original_price ??
+      item.product_mrp ??
+      item.list_price
+  );
+  return Number.isFinite(mrp) && mrp > 0 ? Math.max(mrp, getItemPrice(item)) : getItemPrice(item);
+}
+
+function getProductId(item) {
+  return typeof item.product === "object" ? item.product?.id : item.product;
+}
+
+function applySavedSelections(cartData) {
+  const items = Array.isArray(cartData?.items) ? cartData.items : [];
+  let selections = {};
+  try {
+    selections = JSON.parse(localStorage.getItem(CART_SELECTIONS_KEY) || "{}");
+  } catch (error) {
+    console.warn("Could not read saved cart selections:", error);
+  }
+  const normalized = items.map((item) => {
+    const saved = selections[String(getProductId(item))] || {};
+    const selected = {
+      ...item,
+      ...Object.fromEntries(
+        ["selected_size", "selected_variant", "selected_color", "selected_price", "selected_mrp"]
+          .filter((key) => saved[key] !== undefined)
+          .map((key) => [key, saved[key]])
+      ),
+    };
+    const subtotal = getItemPrice(selected) * Number(item.quantity || 1);
+    return {
+      ...selected,
+      product_price: getItemPrice(selected),
+      subtotal,
+    };
+  });
+  return {
+    ...cartData,
+    items: normalized,
+    total: normalized.reduce((sum, item) => sum + Number(item.subtotal || 0), 0),
+  };
+}
+
+function clearSavedSelection(productId) {
+  if (!productId) return;
+  try {
+    const selections = JSON.parse(localStorage.getItem(CART_SELECTIONS_KEY) || "{}");
+    delete selections[String(productId)];
+    localStorage.setItem(CART_SELECTIONS_KEY, JSON.stringify(selections));
+  } catch (error) {
+    console.warn("Could not clear saved cart selection:", error);
+  }
+}
+
+function getImageUrl(image) {
+  if (!image) return "";
+  if (/^https?:\/\//i.test(image)) return image;
+  return `${API_ORIGIN.replace(/\/$/, "")}/${image.replace(/^\//, "")}`;
+}
+
+function getDeliveryDate() {
+  const date = new Date();
+  date.setDate(date.getDate() + 4);
+  return date.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 function Cart() {
   const navigate = useNavigate();
   const [cart, setCart] = useState({ items: [], total: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const isLoggedIn = Boolean(localStorage.getItem("access_token"));
-
-  const buildGuestCart = (items) => {
-    const normalized = items.map((item) => ({
-      ...item,
-      subtotal: Number(item.product_price || 0) * Number(item.quantity || 1),
-    }));
-    return {
-      items: normalized,
-      total: normalized.reduce((sum, item) => sum + Number(item.subtotal || 0), 0),
-    };
-  };
+  const [notice, setNotice] = useState("");
+  const [busyItems, setBusyItems] = useState({});
+  const isLoggedIn = hasAccessToken();
+  const items = Array.isArray(cart.items) ? cart.items : [];
+  const itemCount = items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+  const grandTotal = Number.isFinite(Number(cart.total))
+    ? Number(cart.total)
+    : items.reduce(
+        (sum, item) => sum + getItemPrice(item) * (Number(item.quantity) || 0),
+        0
+      );
+  const listPrice = items.reduce(
+    (sum, item) => sum + getItemMrp(item) * (Number(item.quantity) || 0),
+    0
+  );
+  const discount = Math.max(0, listPrice - grandTotal);
 
   const refreshCart = async () => {
-    if (!isLoggedIn) {
+    if (!hasAccessToken()) {
       const guestItems = JSON.parse(localStorage.getItem(GUEST_CART_KEY) || "[]");
       setCart(buildGuestCart(guestItems));
       return;
     }
 
     const response = await api.get("/cart/");
-    setCart(response.data);
+    setCart(applySavedSelections(response.data));
   };
 
   useEffect(() => {
@@ -38,16 +161,16 @@ function Cart() {
 
     const loadCart = async () => {
       try {
-        if (!localStorage.getItem("access_token")) {
+        if (!hasAccessToken()) {
           const guestItems = JSON.parse(localStorage.getItem(GUEST_CART_KEY) || "[]");
           if (!cancelled) setCart(buildGuestCart(guestItems));
         } else {
           const response = await api.get("/cart/");
-          if (!cancelled) setCart(response.data);
+          if (!cancelled) setCart(applySavedSelections(response.data));
         }
-      } catch (err) {
+      } catch (loadError) {
         if (!cancelled) {
-          console.error("Failed to load cart:", err.response?.data || err);
+          console.error("Failed to load cart:", loadError.response?.data || loadError);
           setError("Failed to load cart. Please refresh and try again.");
         }
       } finally {
@@ -61,143 +184,346 @@ function Cart() {
     };
   }, []);
 
-  const updateQuantity = async (item, newQuantity) => {
-    if (newQuantity < 1) return;
+  const setBusy = (itemId, busy) => {
+    setBusyItems((current) => ({ ...current, [itemId]: busy }));
+  };
 
+  const updateQuantity = async (item, newQuantity) => {
+    if (newQuantity < 1 || busyItems[item.id]) return;
+
+    setError("");
+    setNotice("");
+    setBusy(item.id, true);
     try {
-      if (!localStorage.getItem("access_token")) {
+      if (!hasAccessToken()) {
         const guestItems = JSON.parse(localStorage.getItem(GUEST_CART_KEY) || "[]");
+        const stock = Number(item.stock ?? 99);
         const updated = guestItems.map((entry) =>
           String(entry.id) === String(item.id)
-            ? { ...entry, quantity: Math.min(newQuantity, Number(entry.stock || 99)) }
+            ? {
+                ...entry,
+                quantity: stock > 0 ? Math.min(newQuantity, stock) : newQuantity,
+              }
             : entry
         );
         localStorage.setItem(GUEST_CART_KEY, JSON.stringify(updated));
         setCart(buildGuestCart(updated));
       } else {
-        await api.patch(`/cart/items/${item.id}/`, { quantity: newQuantity });
-        await refreshCart();
+        const response = await api.patch(`/cart/items/${item.id}/`, {
+          quantity: newQuantity,
+        });
+        setCart(applySavedSelections(response.data));
       }
-      setError("");
-    } catch (err) {
-      console.error("Quantity update error:", err.response?.data || err);
-      setError("Failed to update quantity.");
+    } catch (updateError) {
+      console.error("Quantity update error:", updateError.response?.data || updateError);
+      setError(
+        updateError.response?.data?.detail || "Failed to update quantity. Please try again."
+      );
+    } finally {
+      setBusy(item.id, false);
     }
   };
 
   const removeItem = async (item) => {
+    if (busyItems[item.id]) return;
+
+    setError("");
+    setNotice("");
+    setBusy(item.id, true);
     try {
-      if (!localStorage.getItem("access_token")) {
+      if (!hasAccessToken()) {
         const guestItems = JSON.parse(localStorage.getItem(GUEST_CART_KEY) || "[]");
-        const updated = guestItems.filter(
-          (entry) => String(entry.id) !== String(item.id)
-        );
+        const updated = guestItems.filter((entry) => String(entry.id) !== String(item.id));
         localStorage.setItem(GUEST_CART_KEY, JSON.stringify(updated));
         setCart(buildGuestCart(updated));
       } else {
-        await api.delete(`/cart/items/${item.id}/remove/`);
-        await refreshCart();
+        const response = await api.delete(`/cart/items/${item.id}/remove/`);
+        setCart(applySavedSelections(response.data));
+        clearSavedSelection(getProductId(item));
       }
-      setError("");
-    } catch (err) {
-      console.error("Remove item error:", err.response?.data || err);
-      setError("Failed to remove item.");
+    } catch (removeError) {
+      console.error("Remove item error:", removeError.response?.data || removeError);
+      setError(removeError.response?.data?.detail || "Failed to remove item.");
+    } finally {
+      setBusy(item.id, false);
     }
   };
 
-  const getImageUrl = (image) => {
-    if (!image) return "";
-    if (/^https?:\/\//i.test(image)) return image;
-    return `${import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`}${image.startsWith("/") ? "" : "/"}${image}`;
+  const saveForLater = async (item) => {
+    if (!hasAccessToken()) {
+      navigate("/login", { state: { from: "/cart" } });
+      return;
+    }
+
+    const productId = getProductId(item);
+    if (!productId || busyItems[item.id]) return;
+
+    setError("");
+    setNotice("");
+    setBusy(item.id, true);
+    try {
+      await api.post("/wishlist/add/", { product: productId });
+      try {
+        const response = await api.delete(`/cart/items/${item.id}/remove/`);
+        setCart(applySavedSelections(response.data));
+        clearSavedSelection(productId);
+        setNotice(`${item.product_name || "Item"} saved for later in your wishlist.`);
+      } catch (removeError) {
+        console.error(
+          "Remove saved item from cart error:",
+          removeError.response?.data || removeError
+        );
+        setError("Saved to your wishlist, but could not remove it from the cart.");
+        try {
+          await refreshCart();
+        } catch (refreshError) {
+          console.error("Cart refresh after save error:", refreshError.response?.data || refreshError);
+          setError("Saved to your wishlist, but the cart could not refresh. Please reload.");
+        }
+      }
+    } catch (saveError) {
+      console.error("Save for later error:", saveError.response?.data || saveError);
+      setError(
+        saveError.response?.data?.detail ||
+          "Could not save this item for later. It is still in your cart."
+      );
+    } finally {
+      setBusy(item.id, false);
+    }
+  };
+
+  const placeOrder = () => {
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+
+    navigate("/checkout", {
+      state: {
+        items: items.map((item) => ({
+          ...item,
+          image:
+            item.image ||
+            item.image_url ||
+            item.thumbnail ||
+            item.product_image ||
+            item.product?.image ||
+            item.product?.image_url ||
+            "",
+          price: getItemPrice(item),
+          selected_price: getItemPrice(item),
+          selected_mrp: getItemMrp(item),
+          quantity: Number(item.quantity ?? item.qty ?? 1),
+        })),
+        total: grandTotal,
+      },
+    });
   };
 
   if (loading) {
-    return <h2 style={{ textAlign: "center", marginTop: "50px" }}>Loading cart...</h2>;
-  }
-
-  if (error && !cart.items.length) {
-    return <div style={{ textAlign: "center", marginTop: "50px" }}>
-      <p>{error}</p>
-      <button onClick={() => window.location.reload()}>Try Again</button>
-    </div>;
-  }
-
-  if (!cart.items.length) {
     return (
-      <div style={{ textAlign: "center", padding: "80px 20px" }}>
-        <h1>Your Cart is Empty</h1>
-        <p style={{ color: "#6b7280", margin: "15px 0 25px" }}>
-          Looks like you haven't added anything to your cart yet.
-        </p>
-        <button onClick={() => navigate("/products")} style={primaryButton}>
-          Continue Shopping
+      <main className="nx-cart-page nx-cart-state" aria-live="polite">
+        Loading your cart…
+      </main>
+    );
+  }
+
+  if (error && !items.length) {
+    return (
+      <main className="nx-cart-page nx-cart-state" role="alert">
+        <p>{error}</p>
+        <button className="nx-button nx-button--primary" type="button" onClick={() => window.location.reload()}>
+          Try Again
         </button>
-      </div>
+      </main>
+    );
+  }
+
+  if (!items.length) {
+    return (
+      <main className="nx-cart-page nx-cart-page--empty">
+        <section className="nx-cart-empty-card">
+          <span className="nx-cart-empty-icon">
+            <ShoppingCart size={34} aria-hidden="true" />
+          </span>
+          <h1>Your cart is empty!</h1>
+          <p>Find something you love and it will be waiting here.</p>
+          <Link className="nx-button nx-button--primary" to="/products">
+            Shop Now <ArrowRight size={16} aria-hidden="true" />
+          </Link>
+        </section>
+      </main>
     );
   }
 
   return (
-    <div className="nx-cart-page">
-      <h1 style={{ fontSize: "34px", marginBottom: "30px" }}>Your Cart</h1>
-      {error && <p role="alert" style={{ color: "#dc2626" }}>{error}</p>}
-      {!isLoggedIn && (
-        <p style={{ color: "#6b7280", marginBottom: "20px" }}>
-          Your items are saved in this browser. Sign in to sync your cart with your account.
-        </p>
-      )}
-      <div className="nx-cart-layout">
+    <main className="nx-cart-page">
+      <header className="nx-cart-header">
         <div>
-          {cart.items.map((item) => (
-            <div key={item.id} className="nx-cart-item">
-              <div className="nx-cart-item-image">
-                {item.product_image ? (
-                  <img src={getImageUrl(item.product_image)} alt={item.product_name} />
-                ) : <span style={{ color: "#6b7280" }}>No Image</span>}
-              </div>
-              <div className="nx-cart-item-info">
-                <h2 style={{ margin: "0 0 10px", fontSize: "21px" }}>{item.product_name}</h2>
-                {item.selected_size && <p>Size: {item.selected_size}</p>}
-                <p style={{ margin: "0 0 12px", color: "#6b7280" }}>Price: ₹{item.product_price}</p>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "15px" }}>
-                  <button onClick={() => updateQuantity(item, item.quantity - 1)} disabled={item.quantity <= 1}>−</button>
-                  <span style={{ minWidth: "25px", textAlign: "center", fontWeight: "600" }}>{item.quantity}</span>
-                  <button onClick={() => updateQuantity(item, item.quantity + 1)} disabled={!isLoggedIn && item.quantity >= Number(item.stock || 99)}>+</button>
+          <h1>My Cart <span>({itemCount})</span></h1>
+          {!isLoggedIn && (
+            <p className="nx-cart-session-note">
+              Your items are saved in this browser. Sign in to sync your cart.
+            </p>
+          )}
+        </div>
+        <div className="nx-cart-delivery-strip">
+          <Truck size={17} aria-hidden="true" />
+          <span>Delivery by <strong>{getDeliveryDate()}</strong> <i aria-hidden="true">|</i> <b>Free</b></span>
+        </div>
+      </header>
+
+      {error && <p className="nx-cart-feedback nx-cart-feedback--error" role="alert">{error}</p>}
+      {notice && <p className="nx-cart-feedback nx-cart-feedback--success" role="status">{notice}</p>}
+
+      <div className="nx-cart-layout">
+        <section className="nx-cart-items" aria-label="Items in your cart">
+          {items.map((item) => {
+            const productId = getProductId(item);
+            const productPath = productId ? `/products/${productId}` : "/products";
+            const unitPrice = getItemPrice(item);
+            const mrp = getItemMrp(item);
+            const quantity = Number(item.quantity) || 1;
+            const lineTotal = Number(item.subtotal) || unitPrice * quantity;
+            const stock = Number(item.stock);
+            const hasStock = Number.isFinite(stock);
+            const isOutOfStock = hasStock && stock <= 0;
+            const image = item.product_image || item.image || item.product?.image;
+
+            return (
+              <article className="nx-cart-item" key={item.id}>
+                <Link
+                  className="nx-cart-item-image"
+                  to={productPath}
+                  aria-label={`View ${item.product_name || "product"}`}
+                >
+                  <Package className="nx-cart-image-fallback" size={28} aria-hidden="true" />
+                  {image && (
+                    <img
+                      src={getImageUrl(image)}
+                      alt={item.product_name || "Cart product"}
+                      onError={(event) => {
+                        event.currentTarget.style.display = "none";
+                      }}
+                    />
+                  )}
+                </Link>
+
+                <div className="nx-cart-item-info">
+                  <div className="nx-cart-item-heading">
+                    <Link className="nx-cart-product-title" to={productPath}>
+                      {item.product_name || "Product"}
+                    </Link>
+                    <strong className="nx-cart-line-total">{formatINR(lineTotal)}</strong>
+                  </div>
+                  {item.selected_size && <p className="nx-cart-variant">Size: {item.selected_size}</p>}
+                  {item.selected_variant && <p className="nx-cart-variant">Variant: {item.selected_variant}</p>}
+                  {item.selected_color && <p className="nx-cart-variant">Color: {item.selected_color}</p>}
+                  <div className="nx-cart-price-line">
+                    <strong>{formatINR(unitPrice)}</strong>
+                    {mrp > unitPrice && (
+                      <>
+                        <del>{formatINR(mrp)}</del>
+                        <span className="nx-cart-discount">
+                          {Math.round(((mrp - unitPrice) / mrp) * 100)}% off
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <p className={`nx-cart-stock${isOutOfStock ? " is-out-of-stock" : ""}`}>
+                    <CheckCircle2 size={14} aria-hidden="true" />
+                    {isOutOfStock ? "Out of Stock" : "In Stock · Free Delivery"}
+                  </p>
+
+                  <div className="nx-cart-item-actions">
+                    <div className="nx-quantity-stepper" aria-label={`Quantity for ${item.product_name || "product"}`}>
+                      <button
+                        type="button"
+                        aria-label="Decrease quantity"
+                        onClick={() => updateQuantity(item, quantity - 1)}
+                        disabled={quantity <= 1 || busyItems[item.id]}
+                      >
+                        <Minus size={14} aria-hidden="true" />
+                      </button>
+                      <span aria-live="polite">{quantity}</span>
+                      <button
+                        type="button"
+                        aria-label="Increase quantity"
+                        onClick={() => updateQuantity(item, quantity + 1)}
+                        disabled={busyItems[item.id] || (hasStock && quantity >= stock)}
+                      >
+                        <Plus size={14} aria-hidden="true" />
+                      </button>
+                    </div>
+                    <button
+                      className="nx-cart-text-action"
+                      type="button"
+                      onClick={() => saveForLater(item)}
+                      disabled={busyItems[item.id]}
+                    >
+                      Save for Later
+                    </button>
+                    <button
+                      className="nx-cart-text-action nx-cart-text-action--remove"
+                      type="button"
+                      onClick={() => removeItem(item)}
+                      disabled={busyItems[item.id]}
+                    >
+                      <Trash2 size={14} aria-hidden="true" /> Remove
+                    </button>
+                  </div>
                 </div>
-                <p style={{ fontWeight: "600", marginBottom: "12px" }}>Subtotal: ₹{item.subtotal ?? Number(item.product_price) * Number(item.quantity)}</p>
-                <button onClick={() => removeItem(item)} style={{ border: "none", background: "none", padding: 0, color: "#dc2626", cursor: "pointer", fontWeight: "600" }}>Remove</button>
-              </div>
+              </article>
+            );
+          })}
+        </section>
+
+        <aside className="nx-cart-sidebar">
+          <section className="nx-cart-summary" aria-label="Price details">
+            <h2>PRICE DETAILS</h2>
+            <div className="nx-cart-summary-row">
+              <span>Price ({itemCount} {itemCount === 1 ? "item" : "items"})</span>
+              <span>{formatINR(listPrice)}</span>
             </div>
-          ))}
-        </div>
-        <div className="nx-cart-summary">
-          <h2 style={{ marginBottom: "25px", fontSize: "22px" }}>Order Summary</h2>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "15px" }}>
-            <span>Items</span><span>{cart.items.reduce((sum, item) => sum + Number(item.quantity), 0)}</span>
+            {discount > 0 && (
+              <div className="nx-cart-summary-row nx-cart-summary-row--discount">
+                <span>Discount</span><span>−{formatINR(discount)}</span>
+              </div>
+            )}
+            <div className="nx-cart-summary-row nx-cart-summary-row--delivery">
+              <span>Delivery Charges</span><span>FREE</span>
+            </div>
+            <div className="nx-cart-summary-total">
+              <span>Total Amount</span><strong>{formatINR(grandTotal)}</strong>
+            </div>
+            <p className="nx-cart-savings">
+              {discount > 0
+                ? `You save ${formatINR(discount)} on this order`
+                : "Secure checkout with no hidden charges"}
+            </p>
+            <button className="nx-button nx-button--primary nx-cart-place-order" type="button" onClick={placeOrder}>
+              Place Order <ArrowRight size={16} aria-hidden="true" />
+            </button>
+            <Link className="nx-cart-continue" to="/products">Continue Shopping</Link>
+          </section>
+          <div className="nx-cart-trust">
+            <ShieldCheck size={18} aria-hidden="true" />
+            <span>Safe and Secure Payments <b>·</b> Easy Returns <b>·</b> 100% Authentic Products</span>
           </div>
-          <hr style={{ border: "none", borderTop: "1px solid #e5e7eb", margin: "18px 0" }} />
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "20px", fontWeight: "bold", marginBottom: "25px" }}>
-            <span>Total</span><span>₹{cart.total}</span>
-          </div>
-          <button onClick={() => navigate(isLoggedIn ? "/checkout" : "/login")} style={{ ...primaryButton, width: "100%" }}>
-            {isLoggedIn ? "Proceed to Checkout" : "Sign in to Checkout"}
-          </button>
-          <button onClick={() => navigate("/products")} style={{ width: "100%", padding: "12px", marginTop: "10px", border: "1px solid #d1d5db", borderRadius: "7px", backgroundColor: "white", color: "#111827", cursor: "pointer", fontSize: "14px" }}>
-            Continue Shopping
-          </button>
-        </div>
+        </aside>
       </div>
-    </div>
+
+      <div className="nx-cart-sticky-checkout" aria-label="Checkout summary">
+        <div>
+          <span>Grand Total</span>
+          <strong>{formatINR(grandTotal)}</strong>
+        </div>
+        <button className="nx-button nx-button--primary" type="button" onClick={placeOrder}>
+          Place Order <ArrowRight size={16} aria-hidden="true" />
+        </button>
+      </div>
+    </main>
   );
 }
-
-const primaryButton = {
-  padding: "12px 24px",
-  border: "none",
-  borderRadius: "7px",
-  backgroundColor: "#111827",
-  color: "white",
-  cursor: "pointer",
-  fontWeight: "600",
-};
 
 export default Cart;

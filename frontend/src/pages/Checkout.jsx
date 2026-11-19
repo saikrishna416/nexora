@@ -1,7 +1,84 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import api from "../services/api";
+import api, { API_ORIGIN } from "../services/api";
+
+function getNestedImage(image) {
+  if (typeof image === "string") return image;
+  return image?.image || image?.image_url || image?.url || "";
+}
+
+function normalizeCheckoutItem(item) {
+  const nestedProduct =
+    item.product && typeof item.product === "object" ? item.product : {};
+  const product =
+    item.product_details ||
+    nestedProduct ||
+    {};
+  const firstProductImage = Array.isArray(product.images)
+    ? product.images[0]
+    : Array.isArray(nestedProduct.images)
+      ? nestedProduct.images[0]
+      : null;
+  const image = [
+    item.image,
+    item.image_url,
+    item.thumbnail,
+    item.product_image,
+    product.image,
+    product.image_url,
+    nestedProduct.image,
+    nestedProduct.image_url,
+    getNestedImage(firstProductImage),
+  ].find(Boolean);
+  const priceCandidates = [
+    item.selected_price,
+    item.unit_price,
+    item.price,
+    product.price,
+    product.selling_price,
+    nestedProduct.price,
+    nestedProduct.selling_price,
+    item.product_price,
+  ];
+  const suppliedPrice = priceCandidates.find(
+    (price) => price !== null && price !== undefined && price !== ""
+  );
+  const numericPrice = Number(suppliedPrice ?? 0);
+  const rawQuantity = Number(item.quantity ?? item.qty ?? 1);
+  const productId = product.id ?? item.product_id ?? item.product ?? item.id;
+  let savedSelection = {};
+  try {
+    const selections = JSON.parse(
+      localStorage.getItem("nexora_cart_selections") || "{}"
+    );
+    savedSelection = selections[String(productId)] || {};
+  } catch (error) {
+    console.warn("Could not read saved product selections:", error);
+  }
+  const selectedPrice = Number(
+    item.selected_price ?? savedSelection.selected_price ?? numericPrice
+  );
+
+  return {
+    id: productId,
+    name: item.name || item.product_name || product.name || product.product_name || product.title || "Product",
+    image: typeof image === "string" ? image : getNestedImage(image),
+    price: Number.isFinite(selectedPrice) ? selectedPrice : 0,
+    selected_price: Number.isFinite(selectedPrice) ? selectedPrice : 0,
+    selected_mrp: Number(
+      item.selected_mrp ??
+        item.mrp ??
+        savedSelection.selected_mrp ??
+        item.original_price ??
+        numericPrice
+    ),
+    quantity: Number.isFinite(rawQuantity) && rawQuantity > 0 ? rawQuantity : 1,
+    selected_size: item.selected_size || product.selected_size || savedSelection.selected_size || "",
+    selected_variant: item.selected_variant || product.selected_variant || savedSelection.selected_variant || "",
+    selected_color: item.selected_color || product.selected_color || savedSelection.selected_color || "",
+  };
+}
 
 function Checkout() {
   const navigate = useNavigate();
@@ -11,6 +88,8 @@ function Checkout() {
   location.state?.buyNowProduct ||
   location.state?.product ||
   null;
+  const navigationCartItems =
+  location.state?.items || location.state?.cart?.items || null;
 
 
  const [shippingAddress, setShippingAddress] = useState(() => {
@@ -40,6 +119,12 @@ useEffect(() => {
 
   const fetchCart = async () => {
     if (buyNowProduct) {
+      setLoadingCart(false);
+      return;
+    }
+
+    if (Array.isArray(navigationCartItems)) {
+      setCartItems(navigationCartItems);
       setLoadingCart(false);
       return;
     }
@@ -75,38 +160,17 @@ useEffect(() => {
   return () => {
     cancelled = true;
   };
-}, [buyNowProduct]);
+}, [buyNowProduct, navigationCartItems]);
 
 
 
  
 const products = useMemo(() => {
   if (buyNowProduct) {
-    const product = buyNowProduct.product || buyNowProduct;
-
-    return [{
-      id: product.id || buyNowProduct.product_id,
-      name: product.name || product.product_name || product.title || "Product",
-      image: product.image || product.image_url || "",
-      price: Number(product.price ?? buyNowProduct.price ?? 0),
-      quantity: Number(buyNowProduct.quantity || 1),
-    }];
+    return [normalizeCheckoutItem(buyNowProduct)];
   }
 
-  return cartItems.map((item) => {
-    const product =
-      item.product_details ||
-      (typeof item.product === "object" ? item.product : null) ||
-      item;
-
-    return {
-      id: product.id || item.product_id || item.product,
-      name: product.name || product.product_name || product.title || "Product",
-      image: product.image || product.image_url || "",
-      price: Number(product.price ?? item.unit_price ?? item.price ?? 0),
-      quantity: Number(item.quantity || 1),
-    };
-  });
+  return cartItems.map(normalizeCheckoutItem);
 }, [buyNowProduct, cartItems]);
 
 
@@ -144,9 +208,32 @@ const products = useMemo(() => {
             product: buyNowProduct.id,
             quantity: buyNowProduct.quantity || 1,
             shipping_address: shippingAddress.trim(),
+            ...(buyNowProduct.selected_size
+              ? { selected_size: buyNowProduct.selected_size }
+              : {}),
+            ...(buyNowProduct.selected_variant
+              ? { selected_variant: buyNowProduct.selected_variant }
+              : {}),
+            ...(buyNowProduct.selected_color
+              ? { selected_color: buyNowProduct.selected_color }
+              : {}),
+            selected_price:
+              buyNowProduct.selected_price ?? products[0]?.price,
           })
         : await api.post("/orders/create/", {
             shipping_address: shippingAddress.trim(),
+            selected_items: products.map((item) => ({
+              product: item.id,
+              ...(item.selected_size
+                ? { selected_size: item.selected_size }
+                : {}),
+              ...(item.selected_variant
+                ? { selected_variant: item.selected_variant }
+                : {}),
+              ...(item.selected_color
+                ? { selected_color: item.selected_color }
+                : {}),
+            })),
           });
 
       localStorage.setItem(
@@ -155,11 +242,11 @@ const products = useMemo(() => {
       );
 
       navigate("/payment", {
-  state: {
-    orderId: response.data.id,
-    orderNumber: response.data.order_number,
-  },
-});
+        state: {
+          orderId: response.data.id,
+          orderNumber: response.data.order_number,
+        },
+      });
     } catch (err) {
       console.error(
         "Checkout error:",
@@ -183,11 +270,11 @@ const products = useMemo(() => {
   const imageUrl = (image) => {
     if (!image) return "";
 
-    if (image.startsWith("http://") || image.startsWith("https://")) {
+    if (/^https?:\/\//i.test(image)) {
       return image;
     }
 
-    return `${import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:8000`}${image.startsWith("/") ? "" : "/"}${image}`;
+    return `${API_ORIGIN.replace(/\/$/, "")}/${image.replace(/^\/+/, "")}`;
   };
 
   return (
@@ -296,8 +383,12 @@ const products = useMemo(() => {
                           <h3>{item.name}</h3>
                           <p>Quantity: {item.quantity}</p>
 
-                          {buyNowProduct?.selected_size && (
-                            <p>Size: {buyNowProduct.selected_size}</p>
+                          {item.selected_size && <p>Size: {item.selected_size}</p>}
+                          {item.selected_variant && (
+                            <p>Variant: {item.selected_variant}</p>
+                          )}
+                          {item.selected_color && (
+                            <p>Color: {item.selected_color}</p>
                           )}
                           <span className="checkout-unit-price">
                             {formatPrice(item.price)} each
@@ -542,13 +633,14 @@ const products = useMemo(() => {
         }
 
         .checkout-product-image {
-          width: 84px;
-          height: 84px;
-          flex: 0 0 84px;
+          width: 64px;
+          height: 64px;
+          flex: 0 0 64px;
           display: grid;
           place-items: center;
           overflow: hidden;
-          border-radius: 10px;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
           background: #f3f5f8;
           color: #94a3b8;
           font-size: 11px;
@@ -722,9 +814,9 @@ const products = useMemo(() => {
           }
 
           .checkout-product-image {
-            width: 66px;
-            height: 66px;
-            flex-basis: 66px;
+            width: 64px;
+            height: 64px;
+            flex-basis: 64px;
           }
 
           .checkout-line-total {

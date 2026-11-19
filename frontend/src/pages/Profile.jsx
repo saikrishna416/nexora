@@ -1,92 +1,534 @@
-
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  UserRound,
-  Package,
-  Heart,
-  MapPin,
-  Mail,
-  Phone,
-  LogIn,
-  UserPlus,
-  Pencil,
   ArrowRight,
+  BadgeCheck,
+  CheckCircle2,
+  ChevronRight,
+  CircleHelp,
+  CreditCard,
+  Heart,
+  LoaderCircle,
+  LogOut,
+  Mail,
+  MapPin,
+  Package,
+  Pencil,
+  Plus,
+  Save,
   ShieldCheck,
-  RefreshCw,
+  ShoppingCart,
+  UserRound,
+  X,
 } from "lucide-react";
 import { useAuth } from "../context/useAuth";
 import api from "../services/api";
+import {
+  getSavedDeliveryLocation,
+  lookupIndianPincode,
+  saveDeliveryLocation,
+} from "../utils/deliveryLocation";
+import "./Profile.css";
+
+const EMPTY_PROFILE = {
+  first_name: "",
+  last_name: "",
+  email: "",
+  phone_number: "",
+};
+
+const EMPTY_ADDRESS = {
+  full_name: "",
+  phone_number: "",
+  address_line: "",
+  locality: "",
+  city: "",
+  state: "",
+  pincode: "",
+  is_default: false,
+};
+
+function listFromResponse(data) {
+  if (Array.isArray(data)) return data;
+  return Array.isArray(data?.results) ? data.results : [];
+}
+
+function normalizeIndianPhone(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  const nationalNumber = digits.length === 12 && digits.startsWith("91")
+    ? digits.slice(2)
+    : digits;
+  if (!/^[6-9]\d{9}$/.test(nationalNumber)) return "";
+  return `+91${nationalNumber}`;
+}
+
+function getErrorMessage(error, fallback) {
+  const data = error.response?.data;
+  if (typeof data?.detail === "string") return data.detail;
+  if (typeof data === "object" && data) {
+    const firstError = Object.values(data).flat().find(Boolean);
+    if (typeof firstError === "string") return firstError;
+  }
+  return fallback;
+}
+
+function getInitials(name, username) {
+  const parts = String(name || username || "N")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  return parts.slice(0, 2).map((part) => part[0].toUpperCase()).join("");
+}
+
+function getShippingText(address) {
+  if (typeof address === "string") return address;
+  if (!address || typeof address !== "object") return "";
+  return [
+    address.full_name || address.name,
+    address.address_line || address.address,
+    [address.city, address.state, address.pincode].filter(Boolean).join(", "),
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
 
 function Profile() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [profileForm, setProfileForm] = useState(EMPTY_PROFILE);
+  const [addresses, setAddresses] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [wishlistCount, setWishlistCount] = useState(0);
+  const [recentOrderAddress, setRecentOrderAddress] = useState("");
+  const [deliveryLocation, setDeliveryLocation] = useState(
+    getSavedDeliveryLocation
+  );
+  const [loading, setLoading] = useState(Boolean(isAuthenticated));
+  const [loadError, setLoadError] = useState("");
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [activeMobileTab, setActiveMobileTab] = useState("profile");
+  const [addressFormOpen, setAddressFormOpen] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState(null);
+  const [addressForm, setAddressForm] = useState(EMPTY_ADDRESS);
+  const [savingAddress, setSavingAddress] = useState(false);
+  const [busyAddressId, setBusyAddressId] = useState(null);
+  const [pinLookupLoading, setPinLookupLoading] = useState(false);
+  const [lookedUpPin, setLookedUpPin] = useState("");
+  const [pinMessage, setPinMessage] = useState("");
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated) return undefined;
+    let active = true;
+
+    const loadAccountData = async () => {
+      const results = await Promise.allSettled([
+        api.get("/accounts/profile/"),
+        api.get("/accounts/addresses/"),
+        api.get("/orders/"),
+        api.get("/wishlist/"),
+      ]);
+      if (!active) return;
+
+      const [profileResult, addressResult, orderResult, wishlistResult] = results;
+      if (profileResult.status === "fulfilled") {
+        const nextProfile = profileResult.value.data;
+        setProfile(nextProfile);
+        setProfileForm({
+          first_name: nextProfile.first_name || "",
+          last_name: nextProfile.last_name || "",
+          email: nextProfile.email || "",
+          phone_number: nextProfile.phone_number || "",
+        });
+      } else {
+        console.error(
+          "Profile loading failed:",
+          profileResult.reason.response?.data || profileResult.reason
+        );
+        setLoadError(
+          "Could not load your profile. Please log in again if your session has expired."
+        );
+      }
+
+      if (addressResult.status === "fulfilled") {
+        setAddresses(listFromResponse(addressResult.value.data));
+      } else {
+        console.error(
+          "Saved address loading failed:",
+          addressResult.reason.response?.data || addressResult.reason
+        );
+        setToast({
+          type: "error",
+          message: "Saved addresses could not be loaded. Please try again.",
+        });
+      }
+
+      if (orderResult.status === "fulfilled") {
+        const orderList = listFromResponse(orderResult.value.data);
+        setOrders(orderList);
+        setRecentOrderAddress(
+          getShippingText(orderList.find((order) => order.shipping_address)?.shipping_address)
+        );
+      } else {
+        console.warn(
+          "Order count unavailable:",
+          orderResult.reason.response?.data || orderResult.reason
+        );
+      }
+
+      if (wishlistResult.status === "fulfilled") {
+        setWishlistCount(listFromResponse(wishlistResult.value.data).length);
+      } else {
+        console.warn(
+          "Wishlist count unavailable:",
+          wishlistResult.reason.response?.data || wishlistResult.reason
+        );
+      }
+
       setLoading(false);
-      return;
-    }
+    };
 
-    let isMounted = true;
-
-    api
-      .get("/accounts/profile/")
-      .then((response) => {
-        if (isMounted) setProfile(response.data);
-      })
-      .catch((err) => {
-        console.error("Profile loading failed:", err);
-        if (isMounted) {
-          setError(
-            "Could not load your profile. Please log in again if your session has expired."
-          );
-        }
-      })
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
-
+    loadAccountData();
     return () => {
-      isMounted = false;
+      active = false;
     };
   }, [isAuthenticated]);
 
-  const accountName = profile
+  useEffect(() => {
+    const updateLocation = () => setDeliveryLocation(getSavedDeliveryLocation());
+    window.addEventListener("nexora:location-updated", updateLocation);
+    window.addEventListener("storage", updateLocation);
+    return () => {
+      window.removeEventListener("nexora:location-updated", updateLocation);
+      window.removeEventListener("storage", updateLocation);
+    };
+  }, []);
+
+  const fullName = profile
     ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim() ||
       profile.username
     : "";
+  const activePincode = deliveryLocation.pincode || "Not set";
+  const fallbackAddress =
+    profile?.address ||
+    recentOrderAddress ||
+    [
+      deliveryLocation.area,
+      deliveryLocation.city,
+      deliveryLocation.state,
+      deliveryLocation.pincode,
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+  const showToast = (type, message) => setToast({ type, message });
+
+  const handleProfileChange = (event) => {
+    setProfileForm((current) => ({
+      ...current,
+      [event.target.name]: event.target.value,
+    }));
+  };
+
+  const saveProfile = async (event) => {
+    event.preventDefault();
+    setToast(null);
+    const normalizedPhone = profileForm.phone_number.trim()
+      ? normalizeIndianPhone(profileForm.phone_number)
+      : "";
+    if (profileForm.phone_number.trim() && !normalizedPhone) {
+      showToast("error", "Enter a valid 10-digit Indian mobile number.");
+      return;
+    }
+
+    setSavingProfile(true);
+    try {
+      const response = await api.patch("/accounts/profile/", {
+        first_name: profileForm.first_name.trim(),
+        last_name: profileForm.last_name.trim(),
+        email: profileForm.email.trim(),
+        phone_number: normalizedPhone,
+      });
+      setProfile(response.data);
+      setProfileForm({
+        first_name: response.data.first_name || "",
+        last_name: response.data.last_name || "",
+        email: response.data.email || "",
+        phone_number: response.data.phone_number || "",
+      });
+      setEditingProfile(false);
+      showToast("success", "Your profile details were saved.");
+    } catch (error) {
+      console.error("Profile update failed:", error.response?.data || error);
+      showToast(
+        "error",
+        getErrorMessage(error, "Could not save your profile. Please try again.")
+      );
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const syncDeliveryLocation = (address) => {
+    const addressLines = String(address.address_line || "").split(/\r?\n/);
+    const location = saveDeliveryLocation({
+      area: address.locality || addressLines[1] || "",
+      city: address.city,
+      state: address.state,
+      pincode: address.pincode,
+      label: `${address.locality || address.city}, ${address.city} ${address.pincode}`,
+    });
+    setDeliveryLocation(location);
+  };
+
+  const openNewAddressForm = () => {
+    setEditingAddressId(null);
+    setAddressForm({
+      ...EMPTY_ADDRESS,
+      full_name: fullName || profile?.username || "",
+      phone_number: profile?.phone_number || "",
+      city: deliveryLocation.city || "",
+      state: deliveryLocation.state || "",
+      pincode: deliveryLocation.pincode || "",
+      is_default: addresses.length === 0,
+    });
+    setPinMessage("");
+    setAddressFormOpen(true);
+  };
+
+  const editAddress = (address) => {
+    const [addressLine = "", ...localityParts] = String(
+      address.address_line || ""
+    ).split(/\r?\n/);
+    setEditingAddressId(address.id);
+    setAddressForm({
+      full_name: address.full_name || "",
+      phone_number: address.phone_number || "",
+      address_line: addressLine,
+      locality: localityParts.join(" "),
+      city: address.city || "",
+      state: address.state || "",
+      pincode: address.pincode || "",
+      is_default: Boolean(address.is_default),
+    });
+    setPinMessage("");
+    setAddressFormOpen(true);
+  };
+
+  const lookupAddressPin = async (value = addressForm.pincode) => {
+    const pincode = String(value || "").trim();
+    if (!/^[1-9]\d{5}$/.test(pincode)) {
+      setPinMessage("Enter a valid 6-digit Indian PIN code.");
+      return;
+    }
+    if (lookedUpPin === pincode) return;
+
+    setLookedUpPin(pincode);
+    setPinLookupLoading(true);
+    setPinMessage("");
+    try {
+      const location = await lookupIndianPincode(pincode);
+      setAddressForm((current) => ({
+        ...current,
+        pincode,
+        locality: current.locality || location.area || "",
+        city: location.city || current.city,
+        state: location.state || current.state,
+      }));
+      setPinMessage(
+        location.source === "fallback"
+          ? "PIN is valid, but locality details are unavailable. Enter city and state manually."
+          : `Found ${[location.area, location.city].filter(Boolean).join(", ")}.`
+      );
+    } catch (error) {
+      console.error("Address PIN lookup failed:", error);
+      setPinMessage(error.message || "Could not look up this PIN code.");
+    } finally {
+      setPinLookupLoading(false);
+    }
+  };
+
+  const refreshAddresses = async () => {
+    const response = await api.get("/accounts/addresses/");
+    const list = listFromResponse(response.data);
+    setAddresses(list);
+    return list;
+  };
+
+  const setAddressAsDefault = async (address) => {
+    setBusyAddressId(address.id);
+    setToast(null);
+    try {
+      await api.patch(`/accounts/addresses/${address.id}/`, {
+        is_default: true,
+      });
+      await Promise.all(
+        addresses
+          .filter(
+            (item) =>
+              String(item.id) !== String(address.id) && item.is_default
+          )
+          .map((item) =>
+            api.patch(`/accounts/addresses/${item.id}/`, {
+              is_default: false,
+            })
+          )
+      );
+      await refreshAddresses();
+      try {
+        syncDeliveryLocation(address);
+        showToast("success", "Default delivery address updated.");
+      } catch (error) {
+        console.error("Could not sync delivery location:", error);
+        showToast(
+          "error",
+          "Default address saved, but the Navbar delivery location could not be updated."
+        );
+      }
+    } catch (error) {
+      console.error("Default address update failed:", error.response?.data || error);
+      showToast(
+        "error",
+        getErrorMessage(error, "Could not update the default address.")
+      );
+      try {
+        await refreshAddresses();
+      } catch (refreshError) {
+        console.error("Address refresh failed:", refreshError);
+      }
+    } finally {
+      setBusyAddressId(null);
+    }
+  };
+
+  const saveAddress = async (event) => {
+    event.preventDefault();
+    setToast(null);
+    const normalizedPhone = normalizeIndianPhone(addressForm.phone_number);
+    if (!normalizedPhone) {
+      showToast("error", "Enter a valid 10-digit Indian mobile number.");
+      return;
+    }
+    if (!/^[1-9]\d{5}$/.test(addressForm.pincode.trim())) {
+      showToast("error", "Enter a valid 6-digit Indian PIN code.");
+      return;
+    }
+    if (
+      !addressForm.full_name.trim() ||
+      !addressForm.address_line.trim() ||
+      !addressForm.city.trim() ||
+      !addressForm.state.trim()
+    ) {
+      showToast("error", "Complete the recipient, street, city, and state fields.");
+      return;
+    }
+
+    const addressLine = [
+      addressForm.address_line.trim(),
+      addressForm.locality.trim(),
+    ]
+      .filter(Boolean)
+      .join("\n");
+    const payload = {
+      full_name: addressForm.full_name.trim(),
+      phone_number: normalizedPhone,
+      address_line: addressLine,
+      city: addressForm.city.trim(),
+      state: addressForm.state.trim(),
+      pincode: addressForm.pincode.trim(),
+      is_default: Boolean(addressForm.is_default),
+    };
+
+    setSavingAddress(true);
+    try {
+      const response = editingAddressId
+        ? await api.patch(`/accounts/addresses/${editingAddressId}/`, payload)
+        : await api.post("/accounts/addresses/", payload);
+      const savedAddress = response.data;
+
+      if (payload.is_default) {
+        await Promise.all(
+          addresses
+            .filter((item) => String(item.id) !== String(savedAddress.id) && item.is_default)
+            .map((item) =>
+              api.patch(`/accounts/addresses/${item.id}/`, {
+                is_default: false,
+              })
+            )
+        );
+      }
+
+      await refreshAddresses();
+      setAddressFormOpen(false);
+      setEditingAddressId(null);
+      setAddressForm(EMPTY_ADDRESS);
+      if (payload.is_default) {
+        try {
+          syncDeliveryLocation({
+            ...savedAddress,
+            locality: addressForm.locality,
+          });
+          showToast("success", "Address saved and delivery location updated.");
+        } catch (error) {
+          console.error("Could not sync saved delivery address:", error);
+          showToast(
+            "error",
+            "Address saved, but the Navbar delivery location could not be updated."
+          );
+        }
+      } else {
+        showToast("success", "Delivery address saved.");
+      }
+    } catch (error) {
+      console.error("Address save failed:", error.response?.data || error);
+      showToast(
+        "error",
+        getErrorMessage(error, "Could not save this address. Please try again.")
+      );
+      try {
+        await refreshAddresses();
+      } catch (refreshError) {
+        console.error("Address refresh failed:", refreshError);
+      }
+    } finally {
+      setSavingAddress(false);
+    }
+  };
+
+  const closeAddressForm = () => {
+    setAddressFormOpen(false);
+    setEditingAddressId(null);
+    setAddressForm(EMPTY_ADDRESS);
+    setPinMessage("");
+  };
+
+  const selectMobileTab = (tab) => {
+    setActiveMobileTab(tab);
+    setToast(null);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   if (!isAuthenticated) {
     return (
-      <main className="nex-profile-page">
-        <section className="nex-profile-guest">
-          <div className="nex-profile-guest-icon">
-            <UserRound size={38} />
-          </div>
-
-          <span className="nex-profile-eyebrow">
-            YOUR NEXORA ACCOUNT
+      <main className="account-page">
+        <section className="account-guest-card">
+          <span className="account-guest-icon">
+            <UserRound size={32} aria-hidden="true" />
           </span>
-
+          <p className="account-eyebrow">YOUR NEXORA ACCOUNT</p>
           <h1>Welcome to Nexora</h1>
-
-          <p className="nex-profile-muted">
-            Sign in to manage your account, track orders, and keep your
-            favorite finds close.
-          </p>
-
-          <div className="nex-profile-actions">
-            <Link to="/login" className="nex-profile-primary">
-              <LogIn size={18} />
-              Login
-              <ArrowRight size={16} />
+          <p>Sign in to manage your details, delivery addresses, and shopping activity.</p>
+          <div className="account-guest-actions">
+            <Link to="/login" className="account-button account-button--primary">
+              Sign in <ArrowRight size={17} aria-hidden="true" />
             </Link>
-
-            <Link to="/register" className="nex-profile-secondary">
-              <UserPlus size={18} />
+            <Link to="/register" className="account-button account-button--secondary">
               Create account
             </Link>
           </div>
@@ -97,696 +539,537 @@ function Profile() {
 
   if (loading) {
     return (
-      <main className="nex-profile-page">
-        <div className="nex-profile-status">
-          <RefreshCw className="nex-profile-spinner" size={25} />
-          <p>Loading your profile...</p>
-        </div>
+      <main className="account-page account-page--state" aria-live="polite">
+        <LoaderCircle className="account-spinner" size={27} aria-hidden="true" />
+        <p>Loading your account…</p>
       </main>
     );
   }
 
-  if (error) {
+  if (loadError && !profile) {
     return (
-      <main className="nex-profile-page">
-        <div className="nex-profile-status nex-profile-error">
-          <ShieldCheck size={28} />
-          <p>{error}</p>
-          <button
-            type="button"
-            className="nex-profile-primary"
-            onClick={() => window.location.reload()}
-          >
-            Try again
-          </button>
-        </div>
+      <main className="account-page account-page--state" role="alert">
+        <p>{loadError}</p>
+        <button
+          type="button"
+          className="account-button account-button--primary"
+          onClick={() => window.location.reload()}
+        >
+          Try again
+        </button>
       </main>
     );
   }
 
-  if (!profile) {
-    return (
-      <main className="nex-profile-page">
-        <div className="nex-profile-status">
-          <UserRound size={28} />
-          <p>Profile information is unavailable.</p>
-        </div>
-      </main>
-    );
-  }
+  const verifiedEmail = Boolean(
+    profile?.email_verified || profile?.is_email_verified
+  );
 
   return (
-    <main className="nex-profile-page">
-      <div className="nex-profile-content">
-        <header className="nex-profile-header">
+    <main className="account-page">
+      <div className="account-container">
+        <header className="account-page-heading">
           <div>
-            <span className="nex-profile-eyebrow">
-              ACCOUNT CENTER
-            </span>
+            <p className="account-eyebrow">ACCOUNT CENTER</p>
             <h1>My Account</h1>
-            <p>
-              Welcome back, <strong>{accountName}</strong>. Manage your
-              personal details and shopping activity here.
-            </p>
-          </div>
-
-          <div className="nex-profile-header-icon">
-            <UserRound size={27} />
+            <p>Manage your personal information, addresses, and shopping activity.</p>
           </div>
         </header>
 
-        <section className="nex-profile-card">
-          <div className="nex-profile-avatar">
-            {profile.profile_image ? (
-              <img
-                src={profile.profile_image}
-                alt={`${accountName}'s profile`}
-              />
+        {toast && (
+          <div
+            className={`account-toast account-toast--${toast.type}`}
+            role={toast.type === "error" ? "alert" : "status"}
+          >
+            {toast.type === "success" ? (
+              <CheckCircle2 size={18} aria-hidden="true" />
             ) : (
-              <UserRound size={35} />
+              <ShieldCheck size={18} aria-hidden="true" />
             )}
+            <span>{toast.message}</span>
+            <button type="button" onClick={() => setToast(null)} aria-label="Dismiss message">
+              <X size={16} aria-hidden="true" />
+            </button>
           </div>
+        )}
 
-          <div className="nex-profile-identity">
-            <h2>{accountName}</h2>
-            <p>@{profile.username}</p>
-            {profile.email && (
-              <span className="nex-profile-email">
-                <Mail size={14} />
-                {profile.email}
+        <div className="account-layout">
+          <aside className="account-sidebar">
+            <section className="account-greeting-card">
+              <span className="account-avatar" aria-hidden="true">
+                {profile?.profile_image ? (
+                  <img src={profile.profile_image} alt="" />
+                ) : (
+                  getInitials(fullName, profile?.username)
+                )}
               </span>
-            )}
-          </div>
+              <div className="account-greeting-copy">
+                <span>Hello,</span>
+                <strong>{fullName || profile?.username || "Nexora member"}</strong>
+                <span className="account-email-badge">
+                  <BadgeCheck size={14} aria-hidden="true" />
+                  {verifiedEmail ? "Verified email" : "Email on account"}
+                </span>
+              </div>
+            </section>
 
-          <Link to="/profile/edit" className="nex-profile-edit">
-            <Pencil size={16} />
-            <span>Edit profile</span>
-          </Link>
-        </section>
+            <nav className="account-desktop-nav" aria-label="Account navigation">
+              <Link to="/orders" className="account-nav-item">
+                <Package size={19} aria-hidden="true" />
+                <span>My Orders</span>
+                <ChevronRight size={17} aria-hidden="true" />
+              </Link>
+              <button
+                type="button"
+                className="account-nav-item"
+                onClick={() => document.getElementById("profile-information")?.scrollIntoView({ behavior: "smooth" })}
+              >
+                <UserRound size={19} aria-hidden="true" />
+                <span>Profile Information</span>
+                <ChevronRight size={17} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="account-nav-item"
+                onClick={() => document.getElementById("saved-addresses")?.scrollIntoView({ behavior: "smooth" })}
+              >
+                <MapPin size={19} aria-hidden="true" />
+                <span>Manage Addresses</span>
+                <ChevronRight size={17} aria-hidden="true" />
+              </button>
+              <Link to="/wishlist" className="account-nav-item">
+                <Heart size={19} aria-hidden="true" />
+                <span>My Wishlist</span>
+                <ChevronRight size={17} aria-hidden="true" />
+              </Link>
+              <Link to="/orders" className="account-nav-item">
+                <CreditCard size={19} aria-hidden="true" />
+                <span>Payments &amp; Refunds</span>
+                <ChevronRight size={17} aria-hidden="true" />
+              </Link>
+              <button
+                type="button"
+                className="account-nav-item account-nav-item--logout"
+                onClick={handleLogout}
+              >
+                <LogOut size={19} aria-hidden="true" />
+                <span>Logout</span>
+              </button>
+            </nav>
 
-        <section className="nex-profile-section">
-          <div className="nex-profile-section-heading">
-            <div>
-              <h2>Personal information</h2>
-              <p>Your contact and delivery details</p>
-            </div>
-            <Link
-              to="/profile/edit"
-              className="nex-profile-text-link"
+            <nav className="account-mobile-tabs" aria-label="Account sections">
+              {[
+                ["profile", "Profile Info"],
+                ["addresses", "Addresses"],
+                ["quicklinks", "Quick Links"],
+              ].map(([tab, label]) => (
+                <button
+                  type="button"
+                  key={tab}
+                  className={activeMobileTab === tab ? "is-active" : ""}
+                  aria-pressed={activeMobileTab === tab}
+                  onClick={() => selectMobileTab(tab)}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+          </aside>
+
+          <div className="account-main">
+            <section
+              id="profile-information"
+              className={`account-card account-section${activeMobileTab !== "profile" ? " account-mobile-hidden" : ""}`}
             >
-              Edit details <ArrowRight size={15} />
-            </Link>
+              <div className="account-section-heading">
+                <div>
+                  <h2>Personal Information</h2>
+                  <p>Your account details and contact preferences</p>
+                </div>
+                {!editingProfile && (
+                  <button
+                    type="button"
+                    className="account-button account-button--outline"
+                    onClick={() => {
+                      setToast(null);
+                      setEditingProfile(true);
+                    }}
+                  >
+                    <Pencil size={15} aria-hidden="true" />
+                    Edit
+                  </button>
+                )}
+              </div>
+
+              {editingProfile ? (
+                <form className="account-form-grid" onSubmit={saveProfile}>
+                  <label>
+                    First Name
+                    <input
+                      name="first_name"
+                      autoComplete="given-name"
+                      value={profileForm.first_name}
+                      onChange={handleProfileChange}
+                    />
+                  </label>
+                  <label>
+                    Last Name
+                    <input
+                      name="last_name"
+                      autoComplete="family-name"
+                      value={profileForm.last_name}
+                      onChange={handleProfileChange}
+                    />
+                  </label>
+                  <label>
+                    Email Address
+                    <input
+                      type="email"
+                      name="email"
+                      autoComplete="email"
+                      value={profileForm.email}
+                      onChange={handleProfileChange}
+                      required
+                    />
+                  </label>
+                  <label>
+                    Mobile Number (+91)
+                    <input
+                      type="tel"
+                      name="phone_number"
+                      autoComplete="tel"
+                      inputMode="tel"
+                      maxLength={15}
+                      value={profileForm.phone_number}
+                      onChange={handleProfileChange}
+                      placeholder="+91 98765 43210"
+                    />
+                  </label>
+                  <div className="account-form-actions">
+                    <button
+                      type="submit"
+                      className="account-button account-button--primary"
+                      disabled={savingProfile}
+                    >
+                      {savingProfile ? (
+                        <LoaderCircle className="account-spinner" size={17} aria-hidden="true" />
+                      ) : (
+                        <Save size={17} aria-hidden="true" />
+                      )}
+                      {savingProfile ? "Saving…" : "Save Changes"}
+                    </button>
+                    <button
+                      type="button"
+                      className="account-button account-button--secondary"
+                      disabled={savingProfile}
+                      onClick={() => {
+                        setEditingProfile(false);
+                        setProfileForm({
+                          first_name: profile?.first_name || "",
+                          last_name: profile?.last_name || "",
+                          email: profile?.email || "",
+                          phone_number: profile?.phone_number || "",
+                        });
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="account-info-grid">
+                  <InfoItem icon={<UserRound size={18} />} label="Full Name" value={fullName || "Add your name"} />
+                  <InfoItem icon={<Mail size={18} />} label="Email Address" value={profile?.email || "Add your email address"} />
+                  <InfoItem icon={<MapPin size={18} />} label="Username" value={profile?.username || "—"} />
+                  <InfoItem
+                    icon={<ShoppingCart size={18} />}
+                    label="Mobile Number"
+                    value={profile?.phone_number || "Add your mobile number"}
+                  />
+                </div>
+              )}
+            </section>
+
+            <section
+              id="saved-addresses"
+              className={`account-card account-section${activeMobileTab !== "addresses" ? " account-mobile-hidden" : ""}`}
+            >
+              <div className="account-section-heading">
+                <div>
+                  <h2>Manage Saved Addresses</h2>
+                  <p>Choose where your Nexora orders should be delivered</p>
+                </div>
+                {!addressFormOpen && (
+                  <button
+                    type="button"
+                    className="account-button account-button--outline"
+                    onClick={openNewAddressForm}
+                  >
+                    <Plus size={16} aria-hidden="true" />
+                    Add Address
+                  </button>
+                )}
+              </div>
+
+              {addresses.length > 0 ? (
+                <div className="account-address-list">
+                  {addresses.map((address) => (
+                    <article className="account-address-card" key={address.id}>
+                      <div className="account-address-heading">
+                        <div>
+                          <strong>{address.full_name}</strong>
+                          {address.is_default && <span className="account-default-badge">DEFAULT</span>}
+                        </div>
+                        <span className="account-address-phone">{address.phone_number}</span>
+                      </div>
+                      <p>
+                        {[address.address_line, address.city, address.state, address.pincode]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </p>
+                      <div className="account-address-actions">
+                        <button type="button" onClick={() => editAddress(address)}>
+                          <Pencil size={14} aria-hidden="true" /> Edit
+                        </button>
+                        {!address.is_default && (
+                          <button
+                            type="button"
+                            disabled={busyAddressId === address.id}
+                            onClick={() => setAddressAsDefault(address)}
+                          >
+                            {busyAddressId === address.id ? (
+                              <LoaderCircle className="account-spinner" size={14} aria-hidden="true" />
+                            ) : (
+                              <CheckCircle2 size={14} aria-hidden="true" />
+                            )}
+                            Set as Default
+                          </button>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="account-address-empty">
+                  <MapPin size={20} aria-hidden="true" />
+                  <div>
+                    <strong>{fallbackAddress ? "Current delivery details" : "No saved addresses yet"}</strong>
+                    <p>{fallbackAddress || "Add an address to make checkout faster."}</p>
+                    {deliveryLocation.pincode && (
+                      <span>Active delivery PIN: {deliveryLocation.pincode}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {addressFormOpen && (
+                <form className="account-address-form" onSubmit={saveAddress}>
+                  <div className="account-section-heading account-form-heading">
+                    <div>
+                      <h3>{editingAddressId ? "Update Delivery Address" : "Add Delivery Address"}</h3>
+                      <p>Enter the recipient and delivery location details.</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="account-icon-button"
+                      aria-label="Close address form"
+                      onClick={closeAddressForm}
+                    >
+                      <X size={18} aria-hidden="true" />
+                    </button>
+                  </div>
+                  <div className="account-form-grid">
+                    <label>
+                      Full Name
+                      <input
+                        value={addressForm.full_name}
+                        autoComplete="name"
+                        onChange={(event) =>
+                          setAddressForm((current) => ({ ...current, full_name: event.target.value }))
+                        }
+                        required
+                      />
+                    </label>
+                    <label>
+                      Mobile Number
+                      <input
+                        value={addressForm.phone_number}
+                        type="tel"
+                        inputMode="tel"
+                        autoComplete="tel"
+                        maxLength={15}
+                        placeholder="+91 98765 43210"
+                        onChange={(event) =>
+                          setAddressForm((current) => ({ ...current, phone_number: event.target.value }))
+                        }
+                        required
+                      />
+                    </label>
+                    <label className="account-form-field-full">
+                      House / Flat / Street Address
+                      <input
+                        value={addressForm.address_line}
+                        autoComplete="address-line1"
+                        onChange={(event) =>
+                          setAddressForm((current) => ({ ...current, address_line: event.target.value }))
+                        }
+                        required
+                      />
+                    </label>
+                    <label className="account-form-field-full">
+                      Locality / Landmark
+                      <input
+                        value={addressForm.locality}
+                        autoComplete="address-line2"
+                        onChange={(event) =>
+                          setAddressForm((current) => ({ ...current, locality: event.target.value }))
+                        }
+                        placeholder="Apartment, area, or nearby landmark"
+                      />
+                    </label>
+                    <label>
+                      6-digit PIN Code
+                      <div className="account-pincode-control">
+                        <input
+                          value={addressForm.pincode}
+                          inputMode="numeric"
+                          maxLength={6}
+                          autoComplete="postal-code"
+                          onBlur={() => {
+                            if (/^[1-9]\d{5}$/.test(addressForm.pincode.trim())) {
+                              void lookupAddressPin();
+                            }
+                          }}
+                          onChange={(event) => {
+                            const pincode = event.target.value.replace(/\D/g, "").slice(0, 6);
+                            setAddressForm((current) => ({ ...current, pincode }));
+                            setLookedUpPin("");
+                            setPinMessage("");
+                          }}
+                          required
+                        />
+                        <button
+                          type="button"
+                          disabled={pinLookupLoading}
+                          onClick={() => void lookupAddressPin()}
+                        >
+                          {pinLookupLoading ? "Checking…" : "Check"}
+                        </button>
+                      </div>
+                      {pinMessage && <small className="account-pin-message">{pinMessage}</small>}
+                    </label>
+                    <label>
+                      City
+                      <input
+                        value={addressForm.city}
+                        autoComplete="address-level2"
+                        onChange={(event) =>
+                          setAddressForm((current) => ({ ...current, city: event.target.value }))
+                        }
+                        required
+                      />
+                    </label>
+                    <label>
+                      State
+                      <input
+                        value={addressForm.state}
+                        autoComplete="address-level1"
+                        onChange={(event) =>
+                          setAddressForm((current) => ({ ...current, state: event.target.value }))
+                        }
+                        required
+                      />
+                    </label>
+                  </div>
+                  <label className="account-default-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={addressForm.is_default}
+                      onChange={(event) =>
+                        setAddressForm((current) => ({ ...current, is_default: event.target.checked }))
+                      }
+                    />
+                    Set as my default delivery address
+                  </label>
+                  <div className="account-form-actions">
+                    <button
+                      type="submit"
+                      className="account-button account-button--primary"
+                      disabled={savingAddress}
+                    >
+                      {savingAddress ? (
+                        <LoaderCircle className="account-spinner" size={17} aria-hidden="true" />
+                      ) : (
+                        <Save size={17} aria-hidden="true" />
+                      )}
+                      {savingAddress ? "Saving…" : "Save Address"}
+                    </button>
+                    <button
+                      type="button"
+                      className="account-button account-button--secondary"
+                      disabled={savingAddress}
+                      onClick={closeAddressForm}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              )}
+            </section>
+
+            <section
+              className={`account-activity-section account-section${activeMobileTab !== "quicklinks" ? " account-mobile-hidden" : ""}`}
+            >
+              <h2 className="account-activity-title">Account Activity</h2>
+              <div className="account-stats-grid">
+                <Link to="/orders" className="account-stat-card">
+                  <span className="account-stat-icon"><Package size={20} aria-hidden="true" /></span>
+                  <span className="account-stat-copy"><small>Total Orders</small><strong>{orders.length}</strong></span>
+                  <ChevronRight size={17} aria-hidden="true" />
+                </Link>
+                <Link to="/wishlist" className="account-stat-card">
+                  <span className="account-stat-icon"><Heart size={20} aria-hidden="true" /></span>
+                  <span className="account-stat-copy"><small>Wishlist Items</small><strong>{wishlistCount}</strong></span>
+                  <ChevronRight size={17} aria-hidden="true" />
+                </Link>
+                <div className="account-stat-card account-stat-card--pin">
+                  <span className="account-stat-icon"><MapPin size={20} aria-hidden="true" /></span>
+                  <span className="account-stat-copy"><small>Delivery PIN</small><strong>{activePincode}</strong></span>
+                </div>
+              </div>
+
+              <h2 className="account-activity-title account-quick-title">Quick Actions</h2>
+              <div className="account-quick-grid">
+                <Link to="/orders"><Package size={20} aria-hidden="true" /><strong>Orders</strong><span>Track purchases</span></Link>
+                <Link to="/wishlist"><Heart size={20} aria-hidden="true" /><strong>Wishlist</strong><span>Saved products</span></Link>
+                <Link to="/cart"><ShoppingCart size={20} aria-hidden="true" /><strong>Cart</strong><span>Review your cart</span></Link>
+                <Link to="/faq"><CircleHelp size={20} aria-hidden="true" /><strong>Help Center</strong><span>Get support</span></Link>
+              </div>
+            </section>
+
+            <footer className="account-footer">
+              <ShieldCheck size={17} aria-hidden="true" />
+              <span>Your Nexora account, your shopping experience.</span>
+              <button type="button" onClick={handleLogout}>
+                <LogOut size={15} aria-hidden="true" /> Logout
+              </button>
+            </footer>
           </div>
-
-          <div className="nex-profile-details">
-            <Detail
-              icon={<Mail size={20} />}
-              label="Email address"
-              value={profile.email || "Add your email address"}
-            />
-            <Detail
-              icon={<Phone size={20} />}
-              label="Mobile number"
-              value={profile.phone_number || "Add your mobile number"}
-            />
-            <Detail
-              icon={<MapPin size={20} />}
-              label="Delivery address"
-              value={profile.address || "Add your delivery address"}
-            />
-          </div>
-        </section>
-
-        <section className="nex-profile-section">
-          <div className="nex-profile-section-heading">
-            <div>
-              <h2>Your shopping</h2>
-              <p>Everything you need, all in one place</p>
-            </div>
-          </div>
-
-          <div className="nex-profile-menu">
-            <MenuLink
-              to="/orders"
-              icon={<Package size={22} />}
-              title="My Orders"
-              subtitle="View and track your purchases"
-            />
-
-            <MenuLink
-              to="/wishlist"
-              icon={<Heart size={22} />}
-              title="My Wishlist"
-              subtitle="Find the products you have saved"
-            />
-
-            <MenuLink
-              to="/profile/edit"
-              icon={<MapPin size={22} />}
-              title="Personal details & address"
-              subtitle="Update your contact and delivery information"
-            />
-          </div>
-        </section>
-
-        <footer className="nex-profile-footer">
-          <ShieldCheck size={17} />
-          <span>Your Nexora account, your shopping experience.</span>
-        </footer>
+        </div>
       </div>
-
-      <style>{`
-        .nex-profile-page {
-          min-height: 70vh;
-          padding: 42px 20px 60px;
-          background:
-            radial-gradient(ellipse at 5% 0%, rgba(94, 234, 212, 0.08), transparent 34%),
-            #f8fafc;
-          color: #111827;
-        }
-
-        .nex-profile-content {
-          width: 100%;
-          max-width: 900px;
-          margin: 0 auto;
-        }
-
-        .nex-profile-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 20px;
-          margin-bottom: 25px;
-        }
-
-        .nex-profile-eyebrow {
-          display: inline-block;
-          margin-bottom: 9px;
-          color: #0f766e;
-          font-size: 11px;
-          font-weight: 800;
-          letter-spacing: 1.7px;
-        }
-
-        .nex-profile-header h1,
-        .nex-profile-guest h1 {
-          margin: 0 0 10px;
-          color: #111827;
-          font-size: clamp(27px, 4vw, 35px);
-          line-height: 1.2;
-          letter-spacing: -1px;
-        }
-
-        .nex-profile-header p,
-        .nex-profile-muted {
-          margin: 0;
-          color: #6b7280;
-          font-size: 14px;
-          line-height: 1.7;
-        }
-
-        .nex-profile-header-icon {
-          display: grid;
-          width: 58px;
-          height: 58px;
-          flex-shrink: 0;
-          place-items: center;
-          border: 1px solid #ccfbf1;
-          border-radius: 18px;
-          background: #ecfdf5;
-          color: #0f766e;
-        }
-
-        .nex-profile-card {
-          display: flex;
-          align-items: center;
-          gap: 18px;
-          min-width: 0;
-          padding: 25px;
-          margin-bottom: 32px;
-          border: 1px solid #e5e7eb;
-          border-radius: 18px;
-          background: white;
-          box-shadow: 0 5px 20px rgba(15, 23, 42, 0.04);
-        }
-
-        .nex-profile-avatar {
-          display: grid;
-          width: 76px;
-          height: 76px;
-          flex-shrink: 0;
-          place-items: center;
-          overflow: hidden;
-          border: 3px solid #ccfbf1;
-          border-radius: 50%;
-          background: #e6fffb;
-          color: #0f766e;
-        }
-
-        .nex-profile-avatar img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .nex-profile-identity {
-          flex: 1;
-          min-width: 0;
-        }
-
-        .nex-profile-identity h2 {
-          margin: 0 0 5px;
-          overflow-wrap: anywhere;
-          font-size: 20px;
-        }
-
-        .nex-profile-identity p {
-          margin: 0 0 9px;
-          color: #6b7280;
-          font-size: 13px;
-        }
-
-        .nex-profile-email {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          min-width: 0;
-          color: #6b7280;
-          font-size: 12px;
-          overflow-wrap: anywhere;
-        }
-
-        .nex-profile-edit,
-        .nex-profile-primary,
-        .nex-profile-secondary {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          min-height: 42px;
-          padding: 11px 15px;
-          border-radius: 10px;
-          font-size: 13px;
-          font-weight: 700;
-          text-decoration: none;
-          transition: background 0.2s, transform 0.2s;
-        }
-
-        .nex-profile-edit {
-          flex-shrink: 0;
-          border: 1px solid #99f6e4;
-          background: #f0fdfa;
-          color: #0f766e;
-        }
-
-        .nex-profile-primary {
-          border: 1px solid #111827;
-          background: #111827;
-          color: white;
-          cursor: pointer;
-        }
-
-        .nex-profile-secondary {
-          border: 1px solid #d1d5db;
-          background: white;
-          color: #111827;
-        }
-
-        .nex-profile-primary:hover,
-        .nex-profile-secondary:hover,
-        .nex-profile-edit:hover {
-          transform: translateY(-1px);
-        }
-
-        .nex-profile-section {
-          margin-top: 30px;
-        }
-
-        .nex-profile-section-heading {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 15px;
-          margin-bottom: 15px;
-        }
-
-        .nex-profile-section-heading h2 {
-          margin: 0 0 5px;
-          font-size: 19px;
-          letter-spacing: -0.3px;
-        }
-
-        .nex-profile-section-heading p {
-          margin: 0;
-          color: #6b7280;
-          font-size: 13px;
-          line-height: 1.5;
-        }
-
-        .nex-profile-text-link {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          flex-shrink: 0;
-          color: #0f766e;
-          font-size: 12px;
-          font-weight: 700;
-          text-decoration: none;
-        }
-
-        .nex-profile-details {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 14px;
-        }
-
-        .nex-profile-detail {
-          display: flex;
-          align-items: flex-start;
-          gap: 13px;
-          min-width: 0;
-          padding: 19px;
-          border: 1px solid #e5e7eb;
-          border-radius: 13px;
-          background: white;
-        }
-
-        .nex-profile-detail-icon {
-          display: grid;
-          width: 40px;
-          height: 40px;
-          flex-shrink: 0;
-          place-items: center;
-          border-radius: 11px;
-          background: #ecfdf5;
-          color: #0f766e;
-        }
-
-        .nex-profile-detail-label {
-          margin: 1px 0 7px;
-          color: #6b7280;
-          font-size: 12px;
-          font-weight: 600;
-        }
-
-        .nex-profile-detail-value {
-          margin: 0;
-          color: #111827;
-          font-size: 13px;
-          line-height: 1.6;
-          overflow-wrap: anywhere;
-          word-break: break-word;
-        }
-
-        .nex-profile-menu {
-          overflow: hidden;
-          border: 1px solid #e5e7eb;
-          border-radius: 15px;
-          background: white;
-        }
-
-        .nex-profile-menu-item {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          min-width: 0;
-          padding: 19px 21px;
-          color: #111827;
-          text-decoration: none;
-          transition: background 0.2s;
-        }
-
-        .nex-profile-menu-item + .nex-profile-menu-item {
-          border-top: 1px solid #f1f5f9;
-        }
-
-        .nex-profile-menu-item:hover {
-          background: #f0fdfa;
-        }
-
-        .nex-profile-menu-icon {
-          display: grid;
-          width: 43px;
-          height: 43px;
-          flex-shrink: 0;
-          place-items: center;
-          border-radius: 12px;
-          background: #ecfdf5;
-          color: #0f766e;
-        }
-
-        .nex-profile-menu-copy {
-          flex: 1;
-          min-width: 0;
-        }
-
-        .nex-profile-menu-copy strong {
-          display: block;
-          margin-bottom: 5px;
-          font-size: 14px;
-        }
-
-        .nex-profile-menu-copy span {
-          display: block;
-          color: #6b7280;
-          font-size: 12px;
-          line-height: 1.5;
-        }
-
-        .nex-profile-menu-arrow {
-          flex-shrink: 0;
-          color: #0f766e;
-        }
-
-        .nex-profile-footer {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 8px;
-          margin-top: 28px;
-          color: #6b7280;
-          font-size: 12px;
-          text-align: center;
-        }
-
-        .nex-profile-footer svg {
-          flex-shrink: 0;
-          color: #0f766e;
-        }
-
-        .nex-profile-guest {
-          max-width: 480px;
-          margin: 35px auto;
-          padding: 42px 30px;
-          border: 1px solid #e5e7eb;
-          border-radius: 20px;
-          background: white;
-          box-shadow: 0 10px 35px rgba(15, 23, 42, 0.06);
-          text-align: center;
-        }
-
-        .nex-profile-guest-icon {
-          display: grid;
-          width: 76px;
-          height: 76px;
-          place-items: center;
-          margin: 0 auto 22px;
-          border: 1px solid #99f6e4;
-          border-radius: 23px;
-          background: #ecfdf5;
-          color: #0f766e;
-        }
-
-        .nex-profile-guest .nex-profile-eyebrow {
-          margin-bottom: 12px;
-        }
-
-        .nex-profile-actions {
-          display: flex;
-          flex-wrap: wrap;
-          justify-content: center;
-          gap: 10px;
-          margin-top: 25px;
-        }
-
-        .nex-profile-status {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 12px;
-          max-width: 520px;
-          min-height: 230px;
-          margin: 20px auto;
-          padding: 28px;
-          color: #0f766e;
-          text-align: center;
-        }
-
-        .nex-profile-status p {
-          color: #6b7280;
-          font-size: 14px;
-          line-height: 1.7;
-        }
-
-        .nex-profile-error {
-          color: #dc2626;
-        }
-
-        .nex-profile-spinner {
-          animation: nex-profile-spin 1s linear infinite;
-        }
-
-        @keyframes nex-profile-spin {
-          to { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 600px) {
-          .nex-profile-page {
-            padding: 28px 14px 40px;
-          }
-
-          .nex-profile-header {
-            align-items: flex-start;
-          }
-
-          .nex-profile-header-icon {
-            width: 46px;
-            height: 46px;
-            border-radius: 14px;
-          }
-
-          .nex-profile-card {
-            flex-wrap: wrap;
-            gap: 14px;
-            padding: 18px;
-            border-radius: 15px;
-          }
-
-          .nex-profile-avatar {
-            width: 60px;
-            height: 60px;
-          }
-
-          .nex-profile-identity h2 {
-            font-size: 17px;
-          }
-
-          .nex-profile-edit {
-            margin-left: auto;
-          }
-
-          .nex-profile-details {
-            grid-template-columns: minmax(0, 1fr);
-          }
-
-          .nex-profile-detail {
-            padding: 16px;
-          }
-
-          .nex-profile-section-heading {
-            align-items: flex-start;
-          }
-
-          .nex-profile-section-heading h2 {
-            font-size: 17px;
-          }
-
-          .nex-profile-text-link {
-            margin-top: 3px;
-          }
-
-          .nex-profile-menu-item {
-            gap: 11px;
-            padding: 16px 13px;
-          }
-
-          .nex-profile-menu-icon {
-            width: 39px;
-            height: 39px;
-          }
-
-          .nex-profile-menu-copy strong {
-            font-size: 13px;
-          }
-
-          .nex-profile-menu-copy span {
-            font-size: 11px;
-          }
-
-          .nex-profile-guest {
-            margin: 15px auto;
-            padding: 32px 20px;
-          }
-
-          .nex-profile-actions {
-            flex-direction: column;
-          }
-
-          .nex-profile-actions a {
-            width: 100%;
-          }
-        }
-
-        @media (max-width: 360px) {
-          .nex-profile-header-icon {
-            display: none;
-          }
-
-          .nex-profile-card {
-            padding: 15px;
-          }
-
-          .nex-profile-edit {
-            width: 100%;
-          }
-
-          .nex-profile-section-heading {
-            flex-direction: column;
-            gap: 8px;
-          }
-
-          .nex-profile-detail {
-            gap: 10px;
-            padding: 13px;
-          }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .nex-profile-page *,
-          .nex-profile-page *::before,
-          .nex-profile-page *::after {
-            animation-duration: 0.01ms !important;
-            transition-duration: 0.01ms !important;
-          }
-        }
-      `}</style>
     </main>
   );
 }
 
-function Detail({ icon, label, value }) {
+function InfoItem({ icon, label, value }) {
   return (
-    <div className="nex-profile-detail">
-      <div className="nex-profile-detail-icon">{icon}</div>
-      <div style={{ minWidth: 0 }}>
-        <p className="nex-profile-detail-label">{label}</p>
-        <p className="nex-profile-detail-value">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-function MenuLink({ to, icon, title, subtitle }) {
-  return (
-    <Link to={to} className="nex-profile-menu-item">
-      <span className="nex-profile-menu-icon">{icon}</span>
-      <span className="nex-profile-menu-copy">
-        <strong>{title}</strong>
-        <span>{subtitle}</span>
+    <div className="account-info-item">
+      <span className="account-info-icon">{icon}</span>
+      <span>
+        <small>{label}</small>
+        <strong>{value}</strong>
       </span>
-      <ArrowRight className="nex-profile-menu-arrow" size={18} />
-    </Link>
+    </div>
   );
 }
 

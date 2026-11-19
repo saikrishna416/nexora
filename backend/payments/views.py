@@ -16,7 +16,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from orders.models import Order
+from cart.models import Cart
+from orders.models import BUY_NOW_ORDER_PREFIX, Order
 from .models import Payment
 from .serializers import PaymentSerializer
 
@@ -38,6 +39,29 @@ def amount_in_paise(amount):
             rounding=ROUND_HALF_UP,
         )
     )
+
+
+def is_buy_now_payment(payment):
+    return payment.transaction_id.startswith("BUY-NOW-")
+
+
+def is_buy_now_order(order):
+    return order.order_number.startswith(BUY_NOW_ORDER_PREFIX)
+
+
+def clear_ordered_cart_items(order):
+    cart = Cart.objects.filter(user=order.user).first()
+    if not cart:
+        return
+
+    for product_id, quantity in order.items.values_list(
+        "product_id",
+        "quantity",
+    ):
+        cart.items.filter(
+            product_id=product_id,
+            quantity=quantity,
+        ).delete()
 
 
 class CreatePaymentView(APIView):
@@ -88,12 +112,26 @@ class CreatePaymentView(APIView):
             defaults={
                 "amount": order.total_amount,
                 "payment_method": payment_method,
-                "transaction_id": f"PENDING-{uuid.uuid4().hex}",
+                "transaction_id": (
+                    "BUY-NOW-PENDING-"
+                    if is_buy_now_order(order)
+                    else "PENDING-"
+                ) + uuid.uuid4().hex,
                 "status": "pending",
             },
         )
+        buy_now = (
+            is_buy_now_order(order)
+            or is_buy_now_payment(payment)
+        )
 
         if payment.status == "success":
+            if (
+                not buy_now
+                and order.status != "cancelled"
+                and order.payment_status == "paid"
+            ):
+                clear_ordered_cart_items(order)
             return Response(
                 {"detail": "This order has already been paid."},
                 status=400,
@@ -105,7 +143,9 @@ class CreatePaymentView(APIView):
             payment.amount = order.total_amount
             payment.razorpay_order_id = ""
             payment.razorpay_payment_id = None
-            payment.transaction_id = f"COD-{uuid.uuid4().hex}"
+            payment.transaction_id = (
+                "BUY-NOW-COD-" if buy_now else "COD-"
+            ) + uuid.uuid4().hex
             payment.status = "pending"
             payment.save()
 
@@ -118,6 +158,9 @@ class CreatePaymentView(APIView):
                     "updated_at",
                 ]
             )
+
+            if not buy_now:
+                clear_ordered_cart_items(order)
 
             return Response({
                 "payment": PaymentSerializer(payment).data,
@@ -184,6 +227,7 @@ class CreatePaymentView(APIView):
                     "nexora_order_id": str(order.id),
                     "nexora_order_number": order.order_number,
                     "user_id": str(request.user.id),
+                    "nexora_order_source": "buy_now" if buy_now else "cart",
                 },
             })
 
@@ -209,7 +253,9 @@ class CreatePaymentView(APIView):
         payment.amount = order.total_amount
         payment.razorpay_order_id = razorpay_order["id"]
         payment.razorpay_payment_id = None
-        payment.transaction_id = f"PENDING-{uuid.uuid4().hex}"
+        payment.transaction_id = (
+            "BUY-NOW-PENDING-" if buy_now else "PENDING-"
+        ) + uuid.uuid4().hex
         payment.status = "pending"
         payment.save()
 
@@ -273,6 +319,15 @@ class VerifyRazorpayPaymentView(APIView):
             payment.status == "success"
             and payment.razorpay_payment_id == razorpay_payment_id
         ):
+            if (
+                not (
+                    is_buy_now_order(payment.order)
+                    or is_buy_now_payment(payment)
+                )
+                and payment.order.status != "cancelled"
+                and payment.order.payment_status == "paid"
+            ):
+                clear_ordered_cart_items(payment.order)
             return Response({
                 "message": "Payment already verified.",
                 "order_id": payment.order_id,
@@ -361,8 +416,16 @@ class VerifyRazorpayPaymentView(APIView):
                 status=502,
             )
 
+        buy_now = (
+            is_buy_now_order(payment.order)
+            or is_buy_now_payment(payment)
+        )
         payment.razorpay_payment_id = razorpay_payment_id
-        payment.transaction_id = razorpay_payment_id
+        payment.transaction_id = (
+            f"BUY-NOW-{razorpay_payment_id}"
+            if buy_now
+            else razorpay_payment_id
+        )
         payment.payment_method = "razorpay"
         payment.status = "success"
 
@@ -396,6 +459,9 @@ class VerifyRazorpayPaymentView(APIView):
                 "updated_at",
             ]
         )
+
+        if not buy_now:
+            clear_ordered_cart_items(order)
 
         return Response({
             "message": "Razorpay payment verified successfully.",
@@ -466,7 +532,18 @@ class RazorpayWebhookView(APIView):
             if not payment:
                 return HttpResponse(status=200)
 
+            buy_now = (
+                is_buy_now_order(payment.order)
+                or is_buy_now_payment(payment)
+            )
+
             if payment.status == "success":
+                if (
+                    not buy_now
+                    and payment.order.status != "cancelled"
+                    and payment.order.payment_status == "paid"
+                ):
+                    clear_ordered_cart_items(payment.order)
                 return HttpResponse(status=200)
 
             if event_name == "payment.captured":
@@ -478,7 +555,11 @@ class RazorpayWebhookView(APIView):
 
                 payment.status = "success"
                 payment.razorpay_payment_id = gateway_payment_id
-                payment.transaction_id = gateway_payment_id
+                payment.transaction_id = (
+                    f"BUY-NOW-{gateway_payment_id}"
+                    if buy_now
+                    else gateway_payment_id
+                )
 
                 payment.save(update_fields=[
                     "status",
@@ -497,6 +578,8 @@ class RazorpayWebhookView(APIView):
                             "updated_at",
                         ]
                     )
+                    if not buy_now:
+                        clear_ordered_cart_items(order)
 
             else:
                 payment.status = "failed"

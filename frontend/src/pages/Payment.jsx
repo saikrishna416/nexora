@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../services/api";
 
 const loadRazorpayScript = () =>
@@ -50,6 +50,7 @@ function Payment() {
   const [method, setMethod] = useState("razorpay");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [phone, setPhone] = useState("");
 
   const goToOrder = (result, paymentMethod) => {
@@ -81,6 +82,7 @@ function Payment() {
   }
 
   setError("");
+  setNotice("");
   setLoading(true);
 
   try {
@@ -189,7 +191,13 @@ function Payment() {
       },
 
       modal: {
-        ondismiss: () => setLoading(false),
+        ondismiss: () => {
+          setLoading(false);
+          setError("");
+          setNotice(
+            "Payment cancelled. Your items are still in your cart."
+          );
+        },
         escape: true,
         confirm_close: true,
       },
@@ -207,6 +215,7 @@ function Payment() {
         failure.error?.description ||
           "Payment could not be completed. You can retry or choose Cash on Delivery."
       );
+      setNotice("Your items are still in your cart.");
 
       setLoading(false);
     });
@@ -427,6 +436,22 @@ function Payment() {
             </p>
           )}
 
+          {notice && (
+            <p
+              role="status"
+              aria-live="polite"
+              style={{
+                color: "#047857",
+                marginBottom: "15px",
+                padding: "10px 12px",
+                backgroundColor: "#ecfdf5",
+                borderRadius: "7px",
+              }}
+            >
+              {notice}
+            </p>
+          )}
+
           <button
             type="submit"
             disabled={loading}
@@ -453,6 +478,12 @@ function Payment() {
               : "Continue to Razorpay"}
           </button>
         </form>
+
+        <div style={{ textAlign: "center", marginTop: "16px" }}>
+          <Link to="/cart" style={{ color: "#374151", fontWeight: 600 }}>
+            Return to cart
+          </Link>
+        </div>
       </section>
     </main>
   );

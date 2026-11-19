@@ -1,43 +1,503 @@
 
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 
 import { useNavigate, useParams } from "react-router-dom";
 
 import api from "../services/api";
+import {
+  getSavedDeliveryLocation,
+  lookupIndianPincode,
+  saveDeliveryLocation,
+} from "../utils/deliveryLocation";
 
-const CLOTHING_SIZES = [
+const CART_SELECTION_STORAGE_KEY = "nexora_cart_selections";
 
-  "XS",
+function saveCartSelection(productId, selection) {
+  const saved = JSON.parse(
+    localStorage.getItem(CART_SELECTION_STORAGE_KEY) || "{}"
+  );
+  const hasSelection = Object.values(selection).some(Boolean);
+  if (hasSelection) {
+    saved[String(productId)] = selection;
+  } else {
+    delete saved[String(productId)];
+  }
+  localStorage.setItem(CART_SELECTION_STORAGE_KEY, JSON.stringify(saved));
+}
 
-  "S",
+function getProductText(product) {
+  return [
+    product?.category_name,
+    product?.category?.name,
+    product?.name,
+    product?.title,
+    product?.description,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .replace(/[_-]/g, " ");
+}
 
-  "M",
+function getCategoryName(product) {
+  return String(
+    product?.category_name ||
+      product?.category?.name ||
+      product?.category ||
+      ""
+  );
+}
 
-  "L",
+function getStringOptions(options) {
+  if (!Array.isArray(options)) return [];
+  return options
+    .map((option) => {
+      if (typeof option === "string" || typeof option === "number") {
+        const label = String(option).trim();
+        return label ? { value: label, label } : null;
+      }
+      if (!option || typeof option !== "object") return null;
 
-  "XL",
+      const label =
+        option.label ||
+        option.name ||
+        option.title ||
+        (option.ram || option.storage
+          ? `${option.ram || ""}${
+              option.ram && !/\bram\b/i.test(String(option.ram)) ? " RAM" : ""
+            }${
+              option.storage ? ` | ${option.storage}` : ""
+            }`
+          : option.value);
+      if (!label) return null;
+      return {
+        value: String(option.id ?? option.value ?? label),
+        label: String(label),
+        color: option.color || option.hex || "",
+      };
+    })
+    .filter(Boolean);
+}
 
-  "XXL",
+const VARIANT_DEFINITIONS = {
+  iphone: {
+    selectorLabel: "Storage",
+    baseKey: "256",
+    options: [
+      { key: "128", label: "128 GB", offset: 0, minPrice: 1000 },
+      { key: "256", label: "256 GB", offset: 10000 },
+      { key: "512", label: "512 GB", offset: 30000 },
+    ],
+  },
+  mobile: {
+    selectorLabel: "RAM & Storage",
+    baseKey: "8/128",
+    options: [
+      { key: "8/128", label: "8 GB RAM | 128 GB", offset: 0 },
+      { key: "8/256", label: "8 GB RAM | 256 GB", offset: 3000 },
+      { key: "12/256", label: "12 GB RAM | 256 GB", offset: 6000 },
+    ],
+  },
+  s26Mobile: {
+    selectorLabel: "RAM & Storage",
+    baseKey: "12/256",
+    options: [
+      { key: "12/256", label: "12 GB RAM | 256 GB", offset: 0 },
+      { key: "12/512", label: "12 GB RAM | 512 GB", offset: 12000 },
+    ],
+  },
+  laptop: {
+    selectorLabel: "Configuration (RAM & SSD)",
+    baseKey: "8/512",
+    options: [
+      { key: "8/512", label: "8 GB RAM | 512 GB SSD", offset: 0 },
+      { key: "16/512", label: "16 GB RAM | 512 GB SSD", offset: 6000 },
+      { key: "16/1024", label: "16 GB RAM | 1 TB SSD", offset: 14000 },
+    ],
+  },
+  galaxyBookLaptop: {
+    selectorLabel: "Configuration (RAM & SSD)",
+    baseKey: "8/512",
+    options: [
+      { key: "8/512", label: "8 GB RAM | 512 GB SSD", offset: 0 },
+      { key: "16/1024", label: "16 GB RAM | 1 TB SSD", offset: 14000 },
+    ],
+  },
+  television: {
+    selectorLabel: "Screen Size",
+    baseKey: "43",
+    options: [
+      { key: "32", label: "32 inch", offset: -8000 },
+      { key: "43", label: "43 inch", offset: 0 },
+      { key: "55", label: "55 inch", offset: 15000 },
+    ],
+  },
+  apparel: {
+    selectorLabel: "Size",
+    baseKey: "M",
+    options: [
+      { key: "S", label: "S", offset: -50, minPrice: 99 },
+      { key: "M", label: "M", offset: 0 },
+      { key: "L", label: "L", offset: 0 },
+      { key: "XL", label: "XL", offset: 100 },
+      { key: "XXL", label: "XXL", offset: 200 },
+    ],
+  },
+  footwear: {
+    selectorLabel: "Size (UK/India)",
+    baseKey: "6",
+    options: [
+      { key: "6", label: "UK 6", offset: 0 },
+      { key: "7", label: "UK 7", offset: 0 },
+      { key: "8", label: "UK 8", offset: 100 },
+      { key: "9", label: "UK 9", offset: 150 },
+      { key: "10", label: "UK 10", offset: 200 },
+    ],
+  },
+};
 
-];
+function getVariantType(product) {
+  const category = getCategoryName(product).toLowerCase();
+  const name = String(product?.name || product?.title || "").toLowerCase();
+  const productText = `${category} ${name}`.replace(/[-_]/g, " ");
 
-const SHOE_SIZES = [
+  if (
+    /\b(washing machines?|front load|top load|semi automatic|fully automatic|washers?)\b/.test(productText)
+  ) {
+    return "washingMachine";
+  }
+  if (/\biphone\b/.test(name)) return "iphone";
+  if (/\bgalaxy\s+book\b/.test(name)) return "galaxyBookLaptop";
+  if (/\bs26\b/.test(name)) return "s26Mobile";
+  if (/\b(laptop|macbook|book|ideapad|pavilion|inspiron|vivobook|thinkpad|victus|rog|tuf)\b/.test(name)) {
+    return "laptop";
+  }
+  if (/\b(tv|television|bravia|qled|oled|uhd|smart tv)\b/.test(name)) {
+    return "television";
+  }
+  if (/\b(refrigerator|fridge|frost free|single door|double door)\b/.test(name)) {
+    return "refrigerator";
+  }
+  if (
+    /\b(shoes?|sneakers?|footwear|sandals?|slippers?)\b/.test(
+      `${category} ${name}`
+    )
+  ) {
+    return "footwear";
+  }
+  if (
+    /\b(clothing|fashion|apparel|women|men|kids|children)\b/.test(category) ||
+    /\b(shirts?|t shirts?|tshirts?|kurtas?|dresses|jeans|hoodies|jackets)\b/.test(name)
+  ) {
+    return "apparel";
+  }
+  if (
+    /\b(mobiles?|smartphones?|smart phone|tablets?)\b/.test(category) ||
+    /\b(mobile phone|smartphone|smart phone|iphone|samsung|iqoo|oneplus|xiaomi|redmi|realme|oppo|vivo)\b/.test(name)
+  ) {
+    return "mobile";
+  }
+  return "";
+}
 
-  "6",
+function getVariantOptions(product, variantType) {
+  const definition = VARIANT_DEFINITIONS[variantType];
+  if (!definition) return [];
 
-  "7",
+  const providedSizes = getStringOptions(product?.sizes);
+  if (!["apparel", "footwear"].includes(variantType) || !providedSizes.length) {
+    return definition.options.map((option) => ({ ...option }));
+  }
 
-  "8",
+  return providedSizes.map((option) => {
+    const match = definition.options.find(
+      (candidate) =>
+        candidate.key.toLowerCase() === option.value.toLowerCase() ||
+        candidate.label.toLowerCase() === option.label.toLowerCase()
+    );
+    const key = match?.key || option.value.replace(/^uk\s*/i, "");
+    return {
+      key,
+      value: key,
+      label:
+        variantType === "footwear" && !/^uk\b/i.test(option.label)
+          ? `UK ${option.label}`
+          : option.label,
+      offset: match?.offset || 0,
+      minPrice: match?.minPrice,
+    };
+  });
+}
 
-  "9",
+function getBaseVariantKey(product, variantType, options) {
+  const title = String(product?.name || product?.title || "");
+  const definition = VARIANT_DEFINITIONS[variantType];
+  if (!definition || !options.length) return "";
+  if (
+    ["apparel", "footwear", "s26Mobile", "galaxyBookLaptop"].includes(
+      variantType
+    )
+  ) {
+    return options.some((option) => option.key === definition.baseKey)
+      ? definition.baseKey
+      : options[0].key;
+  }
+  let titleKey = "";
 
-  "10",
+  if (variantType === "iphone") {
+    titleKey = title.match(/\b(128|256|512)\s*gb\b/i)?.[1] || "";
+  } else if (variantType === "mobile") {
+    const ram = title.match(/\b(8|12)\s*gb\s*ram\b/i)?.[1];
+    const storage = title.match(/\b(128|256)\s*gb\b(?!\s*ram)/i)?.[1];
+    if (ram && storage) titleKey = `${ram}/${storage}`;
+  } else if (variantType === "laptop") {
+    const ram = title.match(/\b(8|16)\s*gb\s*ram\b/i)?.[1];
+    const storageMatch = title.match(/\b(512|1024|1)\s*(gb|tb)\s*ssd\b/i);
+    if (ram && storageMatch) {
+      const storage =
+        storageMatch[2].toLowerCase() === "tb"
+          ? 1024
+          : Number(storageMatch[1]);
+      titleKey = `${ram}/${storage}`;
+    }
+  } else if (variantType === "television") {
+    titleKey = title.match(/\b(32|43|55)\s*(?:inch|inches|")/i)?.[1] || "";
+  } else if (variantType === "apparel") {
+    titleKey =
+      title.match(/\bsize\s*(S|M|L|XL|XXL)\b/i)?.[1]?.toUpperCase() || "";
+  } else if (variantType === "footwear") {
+    titleKey =
+      title.match(/\b(?:uk\s*|size\s*)(6|7|8|9|10)\b/i)?.[1] || "";
+  }
 
-  "11",
+  if (titleKey && options.some((option) => option.key === titleKey)) {
+    return titleKey;
+  }
+  return options.some((option) => option.key === definition.baseKey)
+    ? definition.baseKey
+    : options[0]?.key || "";
+}
 
-  "12",
+function getDefaultVariantKey(product, variantType, options, baseKey) {
+  const title = String(product?.name || product?.title || "");
+  let titleKey = "";
+  if (variantType === "s26Mobile") {
+    const storage = title.match(/\b(256|512)\s*gb\b/i)?.[1];
+    if (storage) titleKey = `12/${storage}`;
+  } else if (variantType === "galaxyBookLaptop") {
+    const ram = title.match(/\b(8|16)\s*gb\s*ram\b/i)?.[1];
+    const storageMatch = title.match(/\b(512|1024|1)\s*(gb|tb)\s*ssd\b/i);
+    if (ram && storageMatch) {
+      const storage =
+        storageMatch[2].toLowerCase() === "tb"
+          ? 1024
+          : Number(storageMatch[1]);
+      titleKey = `${ram}/${storage}`;
+    }
+  } else if (variantType === "apparel") {
+    titleKey =
+      title.match(/\bsize\s*(S|M|L|XL|XXL)\b/i)?.[1]?.toUpperCase() || "";
+  } else if (variantType === "footwear") {
+    titleKey =
+      title.match(/\b(?:uk\s*|size\s*)(6|7|8|9|10)\b/i)?.[1] || "";
+  }
+  return options.some((option) => option.key === titleKey)
+    ? titleKey
+    : baseKey;
+}
 
-];
+function getBasePrice(product) {
+  const price = Number(product?.price);
+  return Number.isFinite(price) && price >= 0 ? price : 0;
+}
+
+function getOriginalMrp(product, basePrice) {
+  const candidate = Number(
+    product?.mrp ??
+      product?.original_price ??
+      product?.list_price ??
+      product?.product_mrp
+  );
+  return Number.isFinite(candidate) && candidate >= basePrice
+    ? candidate
+    : basePrice;
+}
+
+function getVariantPrice(product, options, selectedOption, baseVariantKey) {
+  const basePrice = getBasePrice(product);
+  if (!selectedOption) return basePrice;
+  const baseOption =
+    options.find((option) => option.key === baseVariantKey) || selectedOption;
+  const adjustment = selectedOption.offset - baseOption.offset;
+  return Math.max(selectedOption.minPrice || 0, basePrice + adjustment);
+}
+
+function getVariantMrp(product, selectedPrice) {
+  const basePrice = getBasePrice(product);
+  const baseMrp = getOriginalMrp(product, basePrice);
+  if (baseMrp <= basePrice || basePrice <= 0) return selectedPrice;
+  return Math.max(
+    selectedPrice,
+    Math.round(selectedPrice * (baseMrp / basePrice) * 100) / 100
+  );
+}
+
+function formatINR(amount) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(Number(amount) || 0);
+}
+
+function parseDescriptionSpecifications(description) {
+  return String(description || "")
+    .replace(/[•▪·]/g, "\n")
+    .split(/\r?\n/)
+    .map((line) => line.match(/^\s*([^:–—-]{2,40})\s*[:–—-]\s*(.+)\s*$/))
+    .filter(Boolean)
+    .map((match) => [match[1].trim(), match[2].trim()]);
+}
+
+function getSpecificationRows(product) {
+  if (!product) return [];
+  const storedSpecifications = Array.isArray(product.specifications)
+    ? product.specifications
+        .map((item) =>
+          Array.isArray(item)
+            ? item
+            : item && typeof item === "object"
+              ? [item.name || item.key || item.label, item.value]
+              : null
+        )
+        .filter((entry) => entry?.[0] && entry?.[1] != null)
+    : product.specifications && typeof product.specifications === "object"
+      ? Object.entries(product.specifications)
+      : [];
+  const descriptionSpecifications = parseDescriptionSpecifications(
+    product.description
+  );
+  const parsed = Object.fromEntries([
+    ...descriptionSpecifications,
+    ...storedSpecifications,
+  ]);
+  const parsedBrand = Object.entries(parsed).find(
+    ([key]) => key.toLowerCase() === "brand"
+  )?.[1];
+  const stock = Number(product.stock || 0);
+  const rows = [
+    ["Brand", product.brand || parsedBrand || "Not specified in product record"],
+    ["Category", getCategoryName(product) || "Not specified"],
+    ["Model / Product Name", product.model || product.name || "Not specified"],
+    ["Availability", stock > 0 ? "In stock" : "Out of stock"],
+    ["Stock", `${stock} available`],
+    ["Seller", "Nexora Retail"],
+    ["Price", `₹${Number(product.price || 0).toLocaleString("en-IN")}`],
+    ["Catalog Status", product.is_active === false ? "Inactive" : "Active"],
+    ...["created_at", "updated_at"]
+      .filter((key) => product[key])
+      .map((key) => [
+        key === "created_at" ? "Listed On" : "Last Updated",
+        new Date(product[key]).toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        }),
+      ]),
+  ];
+  const capacityInTitle =
+    /\b(refrigerator|fridge|frost free|single door|double door)\b/i.test(
+      product.name || ""
+    ) &&
+    String(product.name || "").match(
+      /\b(\d{2,4})\s*(l|litre|litres|liter|liters)\b/i
+    );
+  const hasCapacitySpecification = Object.keys(parsed).some((key) =>
+    /capacity/i.test(key)
+  );
+  if (capacityInTitle && !hasCapacitySpecification) {
+    rows.splice(3, 0, [
+      "Capacity",
+      `${capacityInTitle[1]} ${capacityInTitle[2]}`,
+    ]);
+  }
+  const reservedFields = new Set([
+    "id",
+    "category",
+    "category_name",
+    "name",
+    "model",
+    "brand",
+    "price",
+    "description",
+    "image",
+    "images",
+    "stock",
+    "specifications",
+    "highlights",
+    "sizes",
+    "variants",
+    "colors",
+    "is_active",
+    "created_at",
+    "updated_at",
+  ]);
+  const formatValue = (value) => {
+    if (Array.isArray(value)) return value.map(String).join(", ");
+    if (value && typeof value === "object") {
+      return Object.entries(value)
+        .map(([key, item]) => `${key}: ${String(item)}`)
+        .join(", ");
+    }
+    return String(value);
+  };
+  const dynamicRows = [
+    ...Object.entries(product).filter(
+      ([key, value]) =>
+        !reservedFields.has(key) &&
+        value !== null &&
+        value !== "" &&
+        typeof value !== "object"
+    ),
+    ...Object.entries(parsed).filter(
+      ([key, value]) =>
+        !["brand"].includes(key.toLowerCase()) &&
+        value !== null &&
+        value !== ""
+    ),
+  ];
+  const seen = new Set(rows.map(([key]) => key.toLowerCase()));
+  dynamicRows.forEach(([key, value]) => {
+    const label = key
+      .replaceAll("_", " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+    if (!seen.has(label.toLowerCase())) {
+      rows.push([label, formatValue(value)]);
+      seen.add(label.toLowerCase());
+    }
+  });
+  return rows;
+}
+
+function getProductHighlights(product) {
+  const stored = Array.isArray(product?.highlights)
+    ? product.highlights
+        .map((highlight) =>
+          typeof highlight === "string"
+            ? highlight
+            : highlight?.text || highlight?.label || highlight?.value || ""
+        )
+        .filter(Boolean)
+    : typeof product?.highlights === "string"
+      ? product.highlights.split(/\r?\n|[•▪·]/)
+      : [];
+  const description = String(product?.description || "")
+    .replace(/[•▪·]/g, "\n")
+    .split(/[\r\n]+|(?<=[.!?])\s+/)
+    .map((line) => line.replace(/^[\s*-]+|[\s*-]+$/g, "").trim())
+    .filter((line) => line.length > 3);
+  return [...new Set([...(stored.length ? stored : description)])].slice(0, 8);
+}
 
 function getImageUrl(image) {
 
@@ -57,70 +517,29 @@ function getImageUrl(image) {
 
 }
 
-function isFashionProduct(product) {
-
-  const category = String(
-
-    product?.category_name ||
-
-    product?.category?.name ||
-
-    ""
-
-  )
-
-    .toLowerCase()
-
-    .replace(/[_-]/g, " ");
-
-  const name = String(
-
-    product?.name || product?.title || ""
-
-  )
-
-    .toLowerCase()
-
-    .replace(/[_-]/g, " ");
-
-  const clothingCategory =
-
-    /\b(clothing|fashion|apparel|women|womens|women's|ladies|girls|mens wear|womens wear|tops|bottoms|ethnic wear)\b/.test(category);
-
-  const clothingName =
-
-    /\b(tops?|t shirts?|tshirts?|shirts?|blouses?|tunics?|trousers|pants|jeans|leggings|joggers|dresses|kurtis|kurtas|sarees|hoodies|jackets|sweaters|skirts|shorts|lehenga|suits|coats|nightwear|pajamas|pyjamas|track pants)\b/.test(name);
-
-  return clothingCategory || clothingName;
-
-}
-
 function isFootwear(product) {
-
-  const text = [
-
-    product?.category_name,
-
-    product?.category?.name,
-
-    product?.name,
-
-    product?.title,
-
-    product?.description,
-
-  ]
-
-    .filter(Boolean)
-
-    .join(" ")
-
-    .toLowerCase()
-
-    .replace(/[_-]/g, " ");
+  const text = getProductText(product);
 
   return /\b(shoes?|sneakers?|footwear|sandals?|boots?|slippers?|loafers?|heels?|flip flops|trainers?)\b/.test(text);
 
+}
+
+function getProductColors(product) {
+  const explicitColors = getStringOptions(product?.colors);
+  const variantColors = (Array.isArray(product?.variants) ? product.variants : [])
+    .filter((variant) => variant && typeof variant === "object" && variant.color)
+    .map((variant) => ({
+      value: String(variant.color),
+      label: String(variant.color),
+      color: variant.color_hex || "",
+    }));
+  const colors = explicitColors.length ? explicitColors : variantColors;
+  return colors.filter(
+    (color, index, list) =>
+      list.findIndex(
+        (other) => other.label.toLowerCase() === color.label.toLowerCase()
+      ) === index
+  );
 }
 
 function ProductDetails() {
@@ -159,15 +578,15 @@ function ProductDetails() {
 
   const [reviews, setReviews] = useState([]);
 
-  const [rating, setRating] = useState(5);
+  const [variantSelection, setVariantSelection] = useState(null);
 
-  const [comment, setComment] = useState("");
+  const [deliveryLocation, setDeliveryLocationState] = useState(
+    getSavedDeliveryLocation
+  );
 
-  const [reviewMessage, setReviewMessage] = useState("");
-
-  const [selectedSize, setSelectedSize] = useState("");
-
-  const [pincode, setPincode] = useState("");
+  const [pincode, setPincode] = useState(
+    () => getSavedDeliveryLocation().pincode || ""
+  );
 
   const [deliveryMessage, setDeliveryMessage] = useState("");
 
@@ -175,7 +594,7 @@ function ProductDetails() {
 
   const date = new Date();
 
-  date.setDate(date.getDate() + 6);
+  date.setDate(date.getDate() + 4);
 
   return date.toLocaleDateString("en-IN", {
 
@@ -197,6 +616,23 @@ function ProductDetails() {
     () => localStorage.getItem("nexora_selected_address") || ""
   );
   const [addressMessage, setAddressMessage] = useState("");
+
+  useEffect(() => {
+    const syncDeliveryLocation = () => {
+      const location = getSavedDeliveryLocation();
+      setDeliveryLocationState(location);
+      setPincode(location.pincode || "");
+    };
+    window.addEventListener("nexora:location-updated", syncDeliveryLocation);
+    window.addEventListener("storage", syncDeliveryLocation);
+    return () => {
+      window.removeEventListener(
+        "nexora:location-updated",
+        syncDeliveryLocation
+      );
+      window.removeEventListener("storage", syncDeliveryLocation);
+    };
+  }, []);
 
   // Load account-owned addresses from Django. Migrate old browser-only addresses
   // once when the account has no saved addresses yet.
@@ -274,27 +710,71 @@ function ProductDetails() {
     return () => { active = false; };
   }, []);
 
-const showShoeSizes = isFootwear(product);
-
-const showClothingSizes =
-
-  isFashionProduct(product) && !showShoeSizes;
-
-const availableSizes = showShoeSizes
-
-  ? SHOE_SIZES
-
-  : showClothingSizes
-
-    ? CLOTHING_SIZES
-
-    : [];
-
-    console.log("Product:", product);
-
-console.log("Shoe detected:", showShoeSizes);
-
-console.log("Sizes:", availableSizes);
+  const showShoeSizes = isFootwear(product);
+  const variantType = getVariantType(product);
+  const showClothingSizes = variantType === "apparel";
+  const showSizeSelector = ["apparel", "footwear"].includes(variantType);
+  const variantOptions = useMemo(
+    () => getVariantOptions(product, variantType),
+    [product, variantType]
+  );
+  const baseVariantKey = getBaseVariantKey(
+    product,
+    variantType,
+    variantOptions
+  );
+  const defaultVariantKey = getDefaultVariantKey(
+    product,
+    variantType,
+    variantOptions,
+    baseVariantKey
+  );
+  const availableSizes = useMemo(() => {
+    if (!showSizeSelector) return [];
+    return variantOptions.map((option) => ({
+      value: option.key,
+      label: option.label,
+    }));
+  }, [showSizeSelector, variantOptions]);
+  const productColors = useMemo(
+    () => getProductColors(product),
+    [product]
+  );
+  const selectionDefaults = {
+    variant: defaultVariantKey,
+    color: productColors[0]?.value || "",
+    size: showSizeSelector ? defaultVariantKey : "",
+    sizeChart: false,
+  };
+  const activeSelection =
+    variantSelection &&
+    String(variantSelection.productId) === String(product?.id)
+      ? variantSelection
+      : selectionDefaults;
+  const selectedVariant = activeSelection.variant;
+  const selectedColor = activeSelection.color;
+  const selectedSize = activeSelection.size;
+  const showSizeChart = activeSelection.sizeChart;
+  const setSelectionField = (field, value) => {
+    setVariantSelection((current) => {
+      const currentSelection =
+        current && String(current.productId) === String(product?.id)
+          ? current
+          : selectionDefaults;
+      return {
+        productId: product?.id,
+        ...currentSelection,
+        [field]:
+          typeof value === "function"
+            ? value(currentSelection[field])
+            : value,
+      };
+    });
+  };
+  const setSelectedVariant = (value) => setSelectionField("variant", value);
+  const setSelectedColor = (value) => setSelectionField("color", value);
+  const setSelectedSize = (value) => setSelectionField("size", value);
+  const setShowSizeChart = (value) => setSelectionField("sizeChart", value);
 
 
   const [showAddressForm, setShowAddressForm] =
@@ -317,8 +797,6 @@ console.log("Sizes:", availableSizes);
     pincode: "",
 
   });
-
-  const isFashion = isFashionProduct(product);
 
   // Load product, related products, and reviews.
 
@@ -472,55 +950,67 @@ console.log("Sizes:", availableSizes);
 
     productImages[activeImageIndex]?.image || null;
 
-  // Display available scalar product fields as specifications.
-
-  const excludedFields = [
-
-    "id",
-
-    "name",
-
-    "price",
-
-    "description",
-
-    "image",
-
-    "images",
-
-    "stock",
-
-    "created_at",
-
-    "updated_at",
-
-  ];
-
-  const specifications = product
-
-    ? Object.entries(product).filter(
-
-        ([key, value]) =>
-
-          !excludedFields.includes(key) &&
-
-          value !== null &&
-
-          value !== "" &&
-
-          typeof value !== "object"
-
-      )
-
-    : [];
+  const specificationRows = useMemo(
+    () => getSpecificationRows(product),
+    [product]
+  );
+  const productHighlights = useMemo(
+    () => getProductHighlights(product),
+    [product]
+  );
+  const selectedVariantOption = variantOptions.find(
+    (option) => option.key === selectedVariant
+  );
+  const selectedPrice = getVariantPrice(
+    product,
+    variantOptions,
+    selectedVariantOption,
+    baseVariantKey
+  );
+  const selectedMrp = getVariantMrp(product, selectedPrice);
+  const selectedAttributeLabel = selectedVariantOption?.label || "";
+  const selectorLabel =
+    VARIANT_DEFINITIONS[variantType]?.selectorLabel || "Variant";
+  const selectedSpecificationRows = selectedAttributeLabel
+    ? [
+        ...specificationRows.filter(
+          ([key]) =>
+            ![
+              "price",
+              "selling price",
+              "selected variant",
+              "selected size",
+              selectorLabel.toLowerCase(),
+            ].includes(String(key).toLowerCase())
+        ),
+        [selectorLabel, selectedAttributeLabel],
+        ["Selling Price", formatINR(selectedPrice)],
+      ]
+    : [
+        ...specificationRows.filter(
+          ([key]) => String(key).toLowerCase() !== "price"
+        ),
+        ["Selling Price", formatINR(selectedPrice)],
+      ];
+  const selectedColorOption = productColors.find(
+    (color) => color.value === selectedColor
+  );
 
   // Add item to cart. Guests use localStorage; signed-in users use the API.
   const handleAddToCart = async () => {
     setMessage("");
     setError("");
 
-    if (isFashion && !selectedSize) {
+    if (availableSizes.length > 0 && !selectedSize) {
       setMessage("Please select a size first.");
+      return;
+    }
+    if (variantOptions.length > 0 && !selectedVariant) {
+      setMessage("Please select a variant first.");
+      return;
+    }
+    if (productColors.length > 1 && !selectedColor) {
+      setMessage("Please select a color first.");
       return;
     }
 
@@ -536,14 +1026,29 @@ console.log("Sizes:", availableSizes);
         ? rawToken.trim()
         : null;
 
+    const selection = {
+      ...(showSizeSelector && selectedVariantOption
+        ? { selected_size: selectedVariantOption.label }
+        : {}),
+      ...(selectedVariantOption && !showSizeSelector
+        ? { selected_variant: selectedVariantOption.label }
+        : {}),
+      ...(selectedColorOption
+        ? { selected_color: selectedColorOption.label }
+        : {}),
+      selected_price: selectedPrice,
+      selected_mrp: selectedMrp,
+    };
+
     const addToGuestCart = () => {
       const storageKey = "nexora_guest_cart";
       const guestCart = JSON.parse(localStorage.getItem(storageKey) || "[]");
-      const size = isFashion ? selectedSize : "";
       const existing = guestCart.find(
         (item) =>
           String(item.product) === String(product.id) &&
-          String(item.selected_size || "") === String(size)
+          String(item.selected_size || "") === String(selection.selected_size || "") &&
+          String(item.selected_variant || "") === String(selection.selected_variant || "") &&
+          String(item.selected_color || "") === String(selection.selected_color || "")
       );
 
       if (existing) {
@@ -553,13 +1058,16 @@ console.log("Sizes:", availableSizes);
         );
       } else {
         guestCart.push({
-          id: `guest-${product.id}-${size || "default"}`,
+          id: `guest-${product.id}-${selection.selected_size || selection.selected_variant || "default"}-${selection.selected_color || ""}`,
           product: product.id,
           product_name: product.name,
-          product_price: product.price,
+          product_price: selectedPrice,
+          selected_price: selectedPrice,
+          mrp: selectedMrp,
+          selected_mrp: selectedMrp,
           product_image: product.image || "",
           quantity: 1,
-          selected_size: size,
+          ...selection,
           stock: Number(product.stock),
         });
       }
@@ -579,9 +1087,17 @@ console.log("Sizes:", availableSizes);
       await api.post("/cart/add/", {
         product: product.id,
         quantity: 1,
-        ...(isFashion ? { selected_size: selectedSize } : {}),
+        ...selection,
       });
       setMessage("Product added to cart!");
+      try {
+        saveCartSelection(product.id, selection);
+      } catch (selectionError) {
+        console.error("Could not save product selection:", selectionError);
+        setMessage(
+          "Product added to cart, but its size or variant could not be saved for checkout."
+        );
+      }
     } catch (err) {
       const detail = err.response?.data?.detail;
       const authError =
@@ -713,6 +1229,14 @@ const handleBuyNow = () => {
     return;
 
   }
+  if (variantOptions.length > 0 && !selectedVariant) {
+    setMessage("Please select a variant first.");
+    return;
+  }
+  if (productColors.length > 1 && !selectedColor) {
+    setMessage("Please select a color first.");
+    return;
+  }
 
   navigate("/checkout", {
 
@@ -724,10 +1248,19 @@ const handleBuyNow = () => {
 
         quantity: 1,
 
-        ...(availableSizes.length > 0
+        selected_price: selectedPrice,
+        selected_mrp: selectedMrp,
 
-          ? { selected_size: selectedSize }
+        ...(showSizeSelector && selectedVariantOption
+          ? { selected_size: selectedVariantOption.label }
+          : {}),
 
+        ...(selectedVariantOption && !showSizeSelector
+          ? { selected_variant: selectedVariantOption.label }
+          : {}),
+
+        ...(selectedColorOption
+          ? { selected_color: selectedColorOption.label }
           : {}),
 
       },
@@ -818,6 +1351,17 @@ const handleBuyNow = () => {
       `${address.name || address.full_name}, ${address.phone || address.phone_number}\n` +
       `${address.line || address.address_line}, ${address.city}, ${address.state} - ${address.pincode}`;
     localStorage.setItem("shipping_address", formattedAddress);
+    try {
+      saveDeliveryLocation({
+        area: address.area || "",
+        city: address.city || "",
+        state: address.state || "",
+        pincode: address.pincode,
+      });
+    } catch (error) {
+      console.error("Could not sync selected address:", error);
+      setDeliveryMessage("Address selected, but delivery location could not be synced.");
+    }
   };
 
   // Look up Indian postal details for a valid six-digit pincode.
@@ -828,7 +1372,7 @@ const handleBuyNow = () => {
 
     setDeliveryMessage("");
 
-    if (!/^\d{6}$/.test(pincode)) {
+    if (!/^[1-9]\d{5}$/.test(pincode)) {
 
       setDeliveryMessage("Enter a valid 6-digit Indian pincode.");
 
@@ -838,43 +1382,28 @@ const handleBuyNow = () => {
 
     try {
 
-      const response = await fetch(
-
-        `https://api.postalpincode.in/pincode/${pincode}`
-
+      const location = await lookupIndianPincode(pincode);
+      saveDeliveryLocation(location);
+      const locality = [location.area, location.city]
+        .filter(Boolean)
+        .join(", ");
+      setDeliveryMessage(
+        location.source === "india-post"
+          ? `Deliver to ${locality || "PIN"} - ${location.pincode}. Location synced with the site.`
+          : `PIN ${location.pincode} saved. Locality lookup is unavailable, but the PIN is synced with the site.`
       );
-
-      const data = await response.json();
-
-      const result = data?.[0];
-
-      if (result?.Status === "Success" && result.PostOffice?.length) {
-
-        const office = result.PostOffice[0];
-
-        setDeliveryMessage(
-
-          `Pincode found: ${office.Name}, ${office.District}, ${office.State}. This lookup does not confirm delivery serviceability.`
-
-        );
-
-      } else {
-
-        setDeliveryMessage("Pincode not found. Please check it and try again.");
-
-      }
 
     } catch (err) {
 
       console.error("Pincode lookup error:", err);
 
-      setDeliveryMessage("Could not look up this pincode. Please try again.");
+      setDeliveryMessage(err.message || "Could not save this pincode.");
 
     }
 
   };
 
-  // Detect browser location and attempt to retrieve its postal code.
+  // Detect current location and sync it with the Navbar.
 
   const handleDetectLocation = () => {
 
@@ -904,28 +1433,36 @@ const handleBuyNow = () => {
 
           const data = await response.json();
 
-          const postcode = String(data?.address?.postcode || "").replace(/\D/g, "");
+          const postcode = String(data?.address?.postcode || "")
+            .replace(/\D/g, "")
+            .match(/[1-9]\d{5}/)?.[0];
 
-          if (/^\d{6}$/.test(postcode)) {
+          if (postcode) {
 
             setPincode(postcode);
 
             const area =
 
               data.address.suburb ||
-
+              data.address.neighbourhood ||
               data.address.city ||
-
               data.address.town ||
-
               data.address.village ||
-
-              "your nearby area";
-
+              "";
+            const city =
+              data.address.city ||
+              data.address.town ||
+              data.address.village ||
+              "";
+            const postalLocation = await lookupIndianPincode(postcode);
+            const location = saveDeliveryLocation({
+              ...postalLocation,
+              area: area || postalLocation.area,
+              city: city || postalLocation.city,
+              state: data.address.state || postalLocation.state,
+            });
             setDeliveryMessage(
-
-              `Location detected near ${area}. Pincode ${postcode} filled in; press Check to look up postal details.`
-
+              `Deliver to ${[location.area, location.city].filter(Boolean).join(", ") || "your location"} - ${postcode}.`
             );
 
           } else {
@@ -942,7 +1479,7 @@ const handleBuyNow = () => {
 
           console.error("Location lookup error:", err);
 
-          setDeliveryMessage("Could not retrieve a pincode for your location. Please enter it manually.");
+          setDeliveryMessage("Could not save your location. Please enter your pincode manually.");
 
         }
 
@@ -959,80 +1496,6 @@ const handleBuyNow = () => {
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
 
     );
-
-  };
-
-  // Submit review.
-
-  const handleSubmitReview = async (event) => {
-
-    event.preventDefault();
-
-    setReviewMessage("");
-
-    try {
-
-      const response = await api.post(
-
-        `/reviews/products/${id}/`,
-
-        {
-
-          product: Number(id),
-
-          rating: Number(rating),
-
-          comment,
-
-        }
-
-      );
-
-      setReviews((current) => [
-
-        response.data,
-
-        ...current,
-
-      ]);
-
-      setComment("");
-
-      setRating(5);
-
-      setReviewMessage(
-
-        "Review submitted successfully!"
-
-      );
-
-    } catch (err) {
-
-      console.error(
-
-        "Review error:",
-
-        err.response?.data || err
-
-      );
-
-      const data = err.response?.data;
-
-      setReviewMessage(
-
-        data?.detail ||
-
-          data?.non_field_errors?.[0] ||
-
-          data?.rating?.[0] ||
-
-          data?.comment?.[0] ||
-
-          "Failed to submit review."
-
-      );
-
-    }
 
   };
 
@@ -1344,19 +1807,26 @@ const handleBuyNow = () => {
 
             </p>
 
-            <h1>{product.name}</h1>
+            <h1>
+              {showSizeSelector && selectedAttributeLabel
+                ? `${product.name} — Size: ${selectedAttributeLabel}`
+                : selectedAttributeLabel
+                  ? `${product.name} (${selectedAttributeLabel})`
+                  : product.name}
+            </h1>
 
             <div className="pd-price">
-
-              ₹
-
-              {Number(product.price).toLocaleString(
-
-                "en-IN"
-
-              )}
-
+              <span className="pd-price-label">Selling Price</span>
+              {formatINR(selectedPrice)}
             </div>
+            {selectedMrp > selectedPrice && (
+              <div className="pd-price-discount">
+                <del>{formatINR(selectedMrp)}</del>
+                <span>
+                  {Math.round(((selectedMrp - selectedPrice) / selectedMrp) * 100)}% off
+                </span>
+              </div>
+            )}
 
             <p className="pd-description">
 
@@ -1388,13 +1858,27 @@ const handleBuyNow = () => {
 
             </p>
 
-            {/* Fashion size selector */}
+            {/* Category-aware size and variant selectors */}
 
             {availableSizes.length > 0 && (
 
-              <section className="pd-size-box">
+              <section
+                className={`pd-size-box${showSizeSelector ? " pd-variant-box" : ""}`}
+              >
 
-                <h3>Select Size</h3>
+                <div className="pd-selector-heading">
+                  <h3>{showShoeSizes ? "Select footwear size" : "Select Size"}</h3>
+                  {showClothingSizes && (
+                    <button
+                      type="button"
+                      className="pd-size-chart-toggle"
+                      aria-expanded={showSizeChart}
+                      onClick={() => setShowSizeChart((shown) => !shown)}
+                    >
+                      {showSizeChart ? "Hide Size Chart" : "Size Chart"}
+                    </button>
+                  )}
+                </div>
 
                 <div className="pd-size-options">
 
@@ -1402,21 +1886,36 @@ const handleBuyNow = () => {
 
                     <button
 
-                      key={size}
+                      key={size.value}
 
                       type="button"
 
                       className={
 
-                        selectedSize === size ? "selected" : ""
+                        selectedSize === size.value ? "selected" : ""
 
                       }
 
-                      onClick={() => setSelectedSize(size)}
+                      aria-pressed={selectedSize === size.value}
+
+                      onClick={() => {
+                        setSelectedSize(size.value);
+                        setSelectedVariant(size.value);
+                      }}
 
                     >
 
-                      {size}
+                      <span>{size.label}</span>
+                      <small>
+                        {formatINR(
+                          getVariantPrice(
+                            product,
+                            variantOptions,
+                            variantOptions.find((option) => option.key === size.value),
+                            baseVariantKey
+                          )
+                        )}
+                      </small>
 
                     </button>
 
@@ -1426,21 +1925,94 @@ const handleBuyNow = () => {
 
                 <small>
 
-                  Select your preferred size before ordering.
-
-                  Confirm the size chart for the specific product.
+                  {showShoeSizes
+                    ? "Sizes are shown in UK / India sizing."
+                    : "Choose the size you want before ordering."}
 
                 </small>
 
+                {showSizeChart && (
+                  <div className="pd-size-chart-preview">
+                    <strong>Available size options</strong>
+                    <p>{availableSizes.map((size) => size.label).join(" · ")}</p>
+                    <small>
+                      Product-specific body measurements are not included in this listing.
+                    </small>
+                  </div>
+                )}
+
               </section>
 
+            )}
+
+            {variantOptions.length > 0 && !showSizeSelector && (
+              <section className="pd-size-box pd-variant-box">
+                <h3>{selectorLabel}</h3>
+                <div className="pd-size-options">
+                  {variantOptions.map((option) => (
+                    <button
+                      key={option.key}
+                      type="button"
+                      className={selectedVariant === option.key ? "selected" : ""}
+                      aria-pressed={selectedVariant === option.key}
+                      onClick={() => setSelectedVariant(option.key)}
+                    >
+                      <span>{option.label}</span>
+                      <small>
+                        {formatINR(
+                          getVariantPrice(product, variantOptions, option, baseVariantKey)
+                        )}
+                      </small>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {productColors.length > 1 && (
+              <section className="pd-size-box pd-color-box">
+                <h3>Color: {selectedColorOption?.label || "Choose a color"}</h3>
+                <div className="pd-size-options">
+                  {productColors.map((color) => (
+                    <button
+                      key={color.value}
+                      type="button"
+                      className={selectedColor === color.value ? "selected" : ""}
+                      aria-pressed={selectedColor === color.value}
+                      onClick={() => setSelectedColor(color.value)}
+                    >
+                      {color.label}
+                    </button>
+                  ))}
+                </div>
+              </section>
             )}
 
             {/* Delivery and address selector */}
 
             <section className="pd-delivery">
 
-              <h3>Delivery Address</h3>
+              <h3>Delivery</h3>
+
+              <p className="pd-active-location">
+                Deliver to{" "}
+                <strong>
+                  {[deliveryLocation.area, deliveryLocation.city]
+                    .filter(
+                      (value, index, list) =>
+                        value &&
+                        list.findIndex(
+                          (other) =>
+                            String(other).toLowerCase() ===
+                            String(value).toLowerCase()
+                        ) === index
+                    )
+                    .join(", ") || "your location"}
+                  {deliveryLocation.pincode
+                    ? ` - ${deliveryLocation.pincode}`
+                    : ""}
+                </strong>
+              </p>
 
               <form
 
@@ -1451,15 +2023,12 @@ const handleBuyNow = () => {
               >
 
                 <input
-
+                  type="text"
                   value={pincode}
-
                   maxLength={6}
-
                   inputMode="numeric"
-
+                  pattern="[1-9][0-9]{5}"
                   placeholder="Enter 6-digit pincode"
-
                   aria-label="Delivery pincode"
 
                   onChange={(event) =>
@@ -1484,9 +2053,16 @@ const handleBuyNow = () => {
 
                 </button>
 
-                <button type="button" onClick={handleDetectLocation}>Detect location</button>
-
+                <button type="button" onClick={handleDetectLocation}>
+                  Use current location
+                </button>
               </form>
+
+              <ul className="pd-delivery-promises">
+                <li>Free Delivery by {expectedDeliveryDate}</li>
+                <li>Cash on Delivery Available</li>
+                <li>7 Days Replacement Policy</li>
+              </ul>
 
               {deliveryMessage && (
 
@@ -1781,13 +2357,13 @@ const handleBuyNow = () => {
 
     >
 
-      Expected Delivery
+      Delivery promise
 
     </p>
 
     <p style={{ margin: 0, color: "#374151", fontSize: "14px" }}>
 
-      Get it by <strong>{expectedDeliveryDate}</strong>
+      Free Delivery by <strong>{expectedDeliveryDate}</strong>
 
     </p>
 
@@ -1805,7 +2381,7 @@ const handleBuyNow = () => {
 
     >
 
-      Estimated delivery in 5–7 days
+      Cash on Delivery Available · 7 Days Replacement Policy
 
     </p>
 
@@ -1885,7 +2461,7 @@ const handleBuyNow = () => {
 
         <section className="pd-panel">
 
-          <h2>Product Details</h2>
+          <h2>Product Details &amp; Specifications</h2>
 
           <p className="pd-long-description">
 
@@ -1895,25 +2471,37 @@ const handleBuyNow = () => {
 
           </p>
 
-          {specifications.length > 0 ? (
+          <h3 className="pd-subheading">Highlights</h3>
+
+          {productHighlights.length > 0 ? (
+
+            <ul className="pd-highlights">
+
+              {productHighlights.map((highlight, index) => (
+
+                <li key={`${index}-${highlight}`}>{highlight}</li>
+
+              ))}
+
+            </ul>
+
+          ) : (
+
+            <p className="pd-note">No product highlights have been provided.</p>
+
+          )}
+
+          {specificationRows.length > 0 ? (
 
             <dl className="pd-spec-grid">
 
-              {specifications.map(([key, value]) => (
+              {selectedSpecificationRows.map(([key, value]) => (
 
                 <div key={key}>
 
                   <dt>
 
-                    {key
-
-                      .replaceAll("_", " ")
-
-                      .replace(/\b\w/g, (letter) =>
-
-                        letter.toUpperCase()
-
-                      )}
+                    {key}
 
                   </dt>
 
@@ -2093,13 +2681,14 @@ const handleBuyNow = () => {
 
           {reviews.length === 0 ? (
 
-            <p className="pd-note">
-
-              No reviews yet. Be the first to review
-
-              this product.
-
-            </p>
+            <div style={{ padding: "24px 0" }}>
+              <p className="pd-note">
+                No reviews yet. Only verified buyers can review this product.
+              </p>
+              <p style={{ margin: "10px 0 0", fontSize: 13, color: "#6b7280" }}>
+                Purchase this product and visit <strong>My Orders</strong> to leave a review.
+              </p>
+            </div>
 
           ) : (
 
@@ -2113,6 +2702,13 @@ const handleBuyNow = () => {
 
               );
 
+              const reviewImages = review.images || [];
+              const coverImage = review.image || null;
+              const allImages = [
+                ...(coverImage ? [{ image: coverImage }] : []),
+                ...reviewImages,
+              ];
+
               return (
 
                 <article
@@ -2121,27 +2717,75 @@ const handleBuyNow = () => {
 
                   key={review.id || index}
 
+                  style={{ borderBottom: index < reviews.length - 1 ? "1px solid #f3f4f6" : "none", paddingBottom: 18, marginBottom: 18 }}
+
                 >
 
-                  <strong>
+                  {/* Reviewer header */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{
+                        width: 36, height: 36, borderRadius: "50%",
+                        background: "#0f766e", color: "#fff",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontWeight: 800, fontSize: 16, flexShrink: 0,
+                      }}>
+                        {(review.username || review.user_name || "C")[0].toUpperCase()}
+                      </div>
+                      <div>
+                        <strong style={{ fontSize: 14, color: "#111827", display: "block" }}>
+                          {review.username || review.user_name || "Customer"}
+                        </strong>
+                        {review.is_verified_purchase !== false && (
+                          <span style={{
+                            display: "inline-flex", alignItems: "center", gap: 3,
+                            fontSize: 11, color: "#0f766e", fontWeight: 700,
+                          }}>
+                            ✓ Verified Purchase
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 12, color: "#9ca3af" }}>
+                      {review.created_at
+                        ? new Date(review.created_at).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" })
+                        : ""}
+                    </span>
+                  </div>
 
-                    {review.username ||
-
-                      review.user_name ||
-
-                      "Customer"}
-
-                  </strong>
-
-                  <p className="pd-stars">
-
-                    {"★".repeat(reviewRating)}
-
-                    {"☆".repeat(5 - reviewRating)}
-
+                  {/* Stars */}
+                  <p className="pd-stars" style={{ margin: "6px 0 8px", fontSize: 18, letterSpacing: 1 }}>
+                    <span style={{ color: "#f59e0b" }}>{"★".repeat(reviewRating)}</span>
+                    <span style={{ color: "#d1d5db" }}>{"★".repeat(5 - reviewRating)}</span>
                   </p>
 
-                  <p>{review.comment}</p>
+                  {/* Comment */}
+                  <p style={{ margin: "0 0 10px", fontSize: 14, color: "#374151", lineHeight: 1.65 }}>
+                    {review.comment}
+                  </p>
+
+                  {/* Review photos */}
+                  {allImages.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {allImages.map((imgObj, imgIdx) => (
+                        <a
+                          key={imgIdx}
+                          href={imgObj.image}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ display: "block", borderRadius: 8, overflow: "hidden", border: "1px solid #e5e7eb" }}
+                          title="View full image"
+                        >
+                          <img
+                            src={imgObj.image}
+                            alt={`Review photo ${imgIdx + 1}`}
+                            style={{ width: 72, height: 72, objectFit: "cover", display: "block" }}
+                            onError={(e) => { e.currentTarget.style.display = "none"; }}
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
 
                 </article>
 
@@ -2153,98 +2797,19 @@ const handleBuyNow = () => {
 
         </section>
 
-        {/* Review form */}
-
-        <section className="pd-panel">
-
-          <h2>Write a Review</h2>
-
-          <form
-
-            className="pd-review-form"
-
-            onSubmit={handleSubmitReview}
-
-          >
-
-            <label>
-
-              Rating
-
-              <select
-
-                value={rating}
-
-                onChange={(event) =>
-
-                  setRating(event.target.value)
-
-                }
-
-              >
-
-                <option value="5">5 - Excellent</option>
-
-                <option value="4">4 - Very Good</option>
-
-                <option value="3">3 - Good</option>
-
-                <option value="2">2 - Fair</option>
-
-                <option value="1">1 - Poor</option>
-
-              </select>
-
-            </label>
-
-            <label>
-
-              Your Review
-
-              <textarea
-
-                value={comment}
-
-                onChange={(event) =>
-
-                  setComment(event.target.value)
-
-                }
-
-                rows={4}
-
-                placeholder="Share your experience"
-
-                required
-
-              />
-
-            </label>
-
-            <button
-
-              className="pd-primary"
-
-              type="submit"
-
-            >
-
-              Submit Review
-
-            </button>
-
-            {reviewMessage && (
-
-              <p className="pd-feedback">
-
-                {reviewMessage}
-
+        {/* Review note — no open form; reviews submitted from Orders page only */}
+        <section className="pd-panel" style={{ background: "#f0fdfa", border: "1px solid #99f6e4" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontSize: 28 }}>✍️</span>
+            <div>
+              <h3 style={{ margin: 0, fontSize: 16, color: "#0f766e" }}>Want to review this product?</h3>
+              <p style={{ margin: "4px 0 0", fontSize: 13, color: "#115e59", lineHeight: 1.5 }}>
+                Only verified buyers can submit reviews. After purchasing, go to{" "}
+                <a href="/orders" style={{ color: "#0f766e", fontWeight: 700 }}>My Orders</a>{" "}
+                and click <strong>"Write a Review"</strong> next to this product.
               </p>
-
-            )}
-
-          </form>
-
+            </div>
+          </div>
         </section>
 
       </div>
@@ -2555,6 +3120,30 @@ const styles = `
 
 }
 
+.pd-price-label {
+  display: block;
+  margin-bottom: 3px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pd-price-discount {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -8px 0 16px;
+}
+
+.pd-price-discount del {
+  color: #64748b;
+}
+
+.pd-price-discount span {
+  color: #15803d;
+  font-weight: 700;
+}
+
 .pd-description,
 
 .pd-long-description {
@@ -2609,6 +3198,46 @@ const styles = `
 
 }
 
+.pd-selector-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pd-selector-heading h3 {
+  margin: 0;
+}
+
+.pd-size-chart-toggle {
+  padding: 5px 9px;
+  border: 1px solid #99f6e4;
+  border-radius: 6px;
+  background: #f0fdfa;
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pd-size-chart-preview {
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+}
+
+.pd-size-chart-preview p {
+  margin: 7px 0;
+  font-weight: 700;
+}
+
+.pd-size-chart-preview small {
+  color: #64748b;
+}
+
 .pd-size-options {
 
   display: flex;
@@ -2637,6 +3266,18 @@ const styles = `
 
   cursor: pointer;
 
+}
+
+.pd-variant-box .pd-size-options button {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+}
+
+.pd-variant-box .pd-size-options button small {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .pd-size-options button.selected {
@@ -2873,6 +3514,50 @@ const styles = `
 
   margin-top: 20px;
 
+}
+
+.pd-subheading {
+  margin: 22px 0 10px;
+  color: #1f2937;
+  font-size: 16px;
+}
+
+.pd-highlights {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 22px;
+  padding-left: 20px;
+  color: #374151;
+  line-height: 1.55;
+}
+
+.pd-active-location {
+  margin: 0 0 12px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.pd-active-location strong {
+  color: #0f172a;
+}
+
+.pd-delivery-promises {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 12px 0;
+  padding: 0;
+  color: #334155;
+  font-size: 12px;
+  list-style: none;
+}
+
+.pd-delivery-promises li::before {
+  content: "✓";
+  margin-right: 6px;
+  color: #0f766e;
+  font-weight: 800;
 }
 
 .pd-spec-grid div {

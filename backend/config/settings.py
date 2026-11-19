@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "reviews",
     "payments",
     "wishlist",
+    "core",
 ]
 
 
@@ -188,15 +189,43 @@ REST_FRAMEWORK = {
     ),
     "PAGE_SIZE": 100,
 }
-CORS_ALLOWED_ORIGINS = [
+DEFAULT_CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-     "http://localhost:5175",
+    "http://localhost:5175",
     "http://127.0.0.1:5175",
     "http://10.95.232.2:5173",
     "https://nexora-six-weld.vercel.app",
     "https://nexora-9u16pd3cq-httpsgithubcomsaikrishna416birthday-v2.vercel.app",
+    "https://nexora-india.vercel.app",
 ]
+DEFAULT_CSRF_TRUSTED_ORIGINS = DEFAULT_CORS_ALLOWED_ORIGINS
+
+
+def get_origin_list(environment_variable, default_origins):
+    configured_origins = os.getenv(environment_variable)
+    origins = (
+        configured_origins.split(",")
+        if configured_origins
+        else default_origins
+    )
+    normalized_origins = [origin.strip() for origin in origins if origin.strip()]
+    required_origin = "https://nexora-india.vercel.app"
+    if required_origin not in normalized_origins:
+        normalized_origins.append(required_origin)
+    return normalized_origins
+
+
+CORS_ALLOWED_ORIGINS = get_origin_list(
+    "CORS_ALLOWED_ORIGINS", DEFAULT_CORS_ALLOWED_ORIGINS
+)
+CORS_ALLOW_ALL_ORIGINS = (
+    os.getenv("CORS_ALLOW_ALL_ORIGINS", "false").strip().lower()
+    in {"1", "true", "yes"}
+)
+CSRF_TRUSTED_ORIGINS = get_origin_list(
+    "CSRF_TRUSTED_ORIGINS", DEFAULT_CSRF_TRUSTED_ORIGINS
+)
 
 AUTH_USER_MODEL = "accounts.User"
 

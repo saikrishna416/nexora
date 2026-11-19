@@ -4,9 +4,16 @@ import uuid
 from products.models import Product
 
 
+# Reserve this prefix so Buy Now source survives payment-page navigation.
+BUY_NOW_ORDER_PREFIX = "NXR-Z"
+
 
 def generate_order_number():
     return f"NXR-{uuid.uuid4().hex[:12].upper()}"
+
+
+def generate_buy_now_order_number():
+    return f"{BUY_NOW_ORDER_PREFIX}{uuid.uuid4().hex[:11].upper()}"
 
 
 class Order(models.Model):

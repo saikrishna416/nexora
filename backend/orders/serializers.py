@@ -8,6 +8,10 @@ class OrderItemSerializer(serializers.ModelSerializer):
         source="product.image",
         read_only=True,
     )
+    product_category = serializers.CharField(
+        source="product.category.name",
+        read_only=True,
+    )
 
     class Meta:
         model = OrderItem
@@ -16,6 +20,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
             "product",
             "product_name",
             "product_image",
+            "product_category",
             "price",
             "quantity",
             "subtotal",
@@ -24,6 +29,16 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
+    payment_method = serializers.SerializerMethodField()
+    razorpay_payment_id = serializers.SerializerMethodField()
+
+    def get_payment_method(self, order):
+        payment = getattr(order, "payment", None)
+        return payment.payment_method if payment else None
+
+    def get_razorpay_payment_id(self, order):
+        payment = getattr(order, "payment", None)
+        return payment.razorpay_payment_id if payment else None
 
     class Meta:
         model = Order
@@ -34,6 +49,8 @@ class OrderSerializer(serializers.ModelSerializer):
             "total_amount",
             "status",
             "payment_status",
+            "payment_method",
+            "razorpay_payment_id",
             "shipping_address",
             "items",
             "created_at",
@@ -53,6 +70,8 @@ class OrderSerializer(serializers.ModelSerializer):
         
 class AdminOrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
+    payment_method = serializers.SerializerMethodField()
+    razorpay_payment_id = serializers.SerializerMethodField()
     username = serializers.CharField(
         source="user.username",
         read_only=True
@@ -61,6 +80,14 @@ class AdminOrderSerializer(serializers.ModelSerializer):
         source="user.email",
         read_only=True
     )
+
+    def get_payment_method(self, order):
+        payment = getattr(order, "payment", None)
+        return payment.payment_method if payment else None
+
+    def get_razorpay_payment_id(self, order):
+        payment = getattr(order, "payment", None)
+        return payment.razorpay_payment_id if payment else None
 
     class Meta:
         model = Order
@@ -72,6 +99,8 @@ class AdminOrderSerializer(serializers.ModelSerializer):
             "total_amount",
             "status",
             "payment_status",
+            "payment_method",
+            "razorpay_payment_id",
             "shipping_address",
             "items",
             "created_at",

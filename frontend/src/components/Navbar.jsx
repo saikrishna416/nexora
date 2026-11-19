@@ -7,22 +7,91 @@ import {
   Heart,
   Search,
   MapPin,
-  Menu,
+  LocateFixed,
+  ShoppingBag,
+  Home as HomeIcon,
+  Laptop,
+  Smartphone,
+  Tv,
+  Shirt,
+  Baby,
+  Sofa,
+  Sparkles,
+  Dumbbell,
+  CircleHelp,
   X,
   ChevronRight,
+  Headphones,
 } from "lucide-react";
+import { productMatchesSearch } from "../utils/productSearch";
+import api from "../services/api";
+import {
+  getSavedDeliveryLocation,
+  lookupIndianPincode,
+  saveDeliveryLocation as persistDeliveryLocation,
+} from "../utils/deliveryLocation";
+
+const DELIVERY_LOCATION_EVENT = "nexora:delivery-location-change";
+
+function getLocationLabel(location) {
+  const placeNames = [location.area, location.city]
+    .map((value) => String(value || "").trim())
+    .filter(
+      (value, index, values) =>
+        value && values.findIndex((other) => other.toLowerCase() === value.toLowerCase()) === index
+    );
+  const place = placeNames.join(", ") || location.country || "India";
+  return `${place}${location.pincode ? ` ${location.pincode}` : ""}`;
+}
+
+function getStoredDeliveryLocation() {
+  const saved = getSavedDeliveryLocation();
+  return { ...saved, label: saved.label || getLocationLabel(saved) };
+}
+
+function getAddressLocation(address) {
+  if (address && typeof address === "object") {
+    const addressLine = String(
+      address.address_line || address.address || address.shipping_address || ""
+    );
+    return {
+      area:
+        address.area ||
+        addressLine.split(/[,\n]/).map((part) => part.trim()).filter(Boolean)[0] ||
+        "",
+      city: address.city || "",
+      state: address.state || "",
+      pincode: String(address.pincode || address.postal_code || ""),
+    };
+  }
+
+  const lines = String(address || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const locationLine = lines[lines.length - 1] || "";
+  const pin = locationLine.match(/\b([1-9]\d{5})\b/);
+  const placeParts = locationLine
+    .replace(pin?.[0] || "", "")
+    .split(/[,-]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return {
+    area: placeParts.length > 2 ? placeParts.slice(0, -2).join(", ") : "",
+    city: placeParts.length > 1 ? placeParts[placeParts.length - 2] : placeParts[0] || "",
+    state: placeParts.length > 1 ? placeParts[placeParts.length - 1] : "",
+    pincode: pin?.[1] || "",
+  };
+}
 
 // Keep these category values aligned with your Products page.
 const categories = [
-  { label: "Electronics", value: "Electronics" },
-  { label: "Mobiles", value: "Mobiles" },
-  { label: "TVs & Appliances", value: "TVs & Appliances" },
-  { label: "Men's Fashion", value: "Men's Fashion" },
-  { label: "Women's Fashion", value: "Women's Fashion" },
-  { label: "Kids", value: "Kids" },
-  { label: "Home & Living", value: "Home & Living" },
-  { label: "Beauty", value: "Beauty & Personal Care" },
-  { label: "Sports", value: "Sports & Fitness" },
+  { label: "Electronics", value: "Electronics", Icon: Laptop },
+  { label: "Mobiles", value: "Mobiles", Icon: Smartphone },
+  { label: "TVs & Appliances", value: "TVs & Appliances", Icon: Tv },
+  { label: "Men's Fashion", value: "Men's Fashion", Icon: Shirt },
+  { label: "Women's Fashion", value: "Women's Fashion", Icon: ShoppingBag },
+  { label: "Kids", value: "Kids", Icon: Baby },
+  { label: "Home & Living", value: "Home & Living", Icon: Sofa },
+  { label: "Beauty", value: "Beauty & Personal Care", Icon: Sparkles },
+  { label: "Sports", value: "Sports & Fitness", Icon: Dumbbell },
 ];
 
 const RAW_API_URL = (
@@ -46,86 +115,81 @@ function Navbar() {
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const [locationOpen, setLocationOpen] = useState(false);
-  const [country, setCountry] = useState(() =>
-    typeof window !== "undefined"
-      ? window.localStorage.getItem("nexoraCountry") || "India"
-      : "India"
+  const [deliveryLocation, setDeliveryLocation] = useState(
+    getStoredDeliveryLocation
   );
-  const [pinCode, setPinCode] = useState(() =>
-    typeof window !== "undefined"
-      ? window.localStorage.getItem("nexoraPinCode") || ""
-      : ""
-  );
-  const [deliveryCity, setDeliveryCity] = useState(() =>
-    typeof window !== "undefined"
-      ? window.localStorage.getItem("nexoraDeliveryCity") || ""
-      : ""
-  );
+  const country = deliveryLocation.country || "India";
+  const pinCode = deliveryLocation.pincode || "";
 
   const [draftCountry, setDraftCountry] = useState(country);
   const [draftPinCode, setDraftPinCode] = useState(pinCode);
   const [locationError, setLocationError] = useState("");
+  const [detectingLocation, setDetectingLocation] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [savedAddressLoading, setSavedAddressLoading] = useState(false);
   const [pinLookup, setPinLookup] = useState({
     pin: "",
     status: "idle",
+    area: "",
     district: "",
     city: "",
     state: "",
   });
 
+  useEffect(() => {
+    const updateLocation = (event) => {
+      setDeliveryLocation(
+        event.detail && typeof event.detail === "object"
+          ? event.detail
+          : getStoredDeliveryLocation()
+      );
+    };
+    window.addEventListener("storage", updateLocation);
+    window.addEventListener(DELIVERY_LOCATION_EVENT, updateLocation);
+    window.addEventListener("nexora:location-updated", updateLocation);
+    return () => {
+      window.removeEventListener("storage", updateLocation);
+      window.removeEventListener(DELIVERY_LOCATION_EVENT, updateLocation);
+      window.removeEventListener("nexora:location-updated", updateLocation);
+    };
+  }, []);
+
   // Fetch Indian postal details after the user finishes typing a valid PIN.
   useEffect(() => {
     const cleanPin = draftPinCode.trim();
-    if (draftCountry !== "India" || !/^\d{6}$/.test(cleanPin)) return undefined;
+    if (draftCountry !== "India" || !/^[1-9]\d{5}$/.test(cleanPin)) {
+      return undefined;
+    }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(async () => {
       setPinLookup({
         pin: cleanPin,
         status: "loading",
+        area: "",
         district: "",
         city: "",
         state: "",
       });
       try {
-        const response = await fetch(
-          `https://api.postalpincode.in/pincode/${cleanPin}`,
-          { signal: controller.signal }
-        );
-        if (!response.ok) throw new Error("PIN lookup request failed");
-
-        const data = await response.json();
-        const record = data?.[0];
-
-        if (
-          record?.Status === "Success" &&
-          Array.isArray(record.PostOffice) &&
-          record.PostOffice.length
-        ) {
-          const office = record.PostOffice[0];
-          setPinLookup({
-            pin: cleanPin,
-            status: "success",
-            district: office.District || "",
-            city: String(office.Name || office.Block || office.District || "")
-              .replace(/\s+(H\.O\.|S\.O\.|B\.O\.)$/i, "")
-              .trim(),
-            state: office.State || "",
-          });
-        } else {
-          setPinLookup({
-            pin: cleanPin,
-            status: "invalid",
-            district: "",
-            city: "",
-            state: "",
-          });
-        }
+        const location = await lookupIndianPincode(cleanPin, {
+          signal: controller.signal,
+        });
+        setPinLookup({
+          pin: cleanPin,
+          status: location.source === "india-post" ? "success" : "unavailable",
+          area: location.area,
+          district: location.city,
+          city: location.city,
+          state: location.state,
+        });
       } catch (error) {
         if (error.name !== "AbortError") {
+          console.error("PIN code lookup failed:", error);
           setPinLookup({
             pin: cleanPin,
             status: "unavailable",
+            area: "",
             district: "",
             city: "",
             state: "",
@@ -140,12 +204,91 @@ function Navbar() {
     };
   }, [draftCountry, draftPinCode]);
 
+  useEffect(() => {
+    if (!locationOpen || !isAuthenticated) return undefined;
+
+    let active = true;
+    (async () => {
+      let locations = [];
+      try {
+        const addressResponse = await api.get("/accounts/addresses/");
+        const addresses =
+          addressResponse.data?.results || addressResponse.data || [];
+        locations = Array.isArray(addresses)
+          ? addresses
+              .map((address) => {
+                const location = getAddressLocation(address);
+                return {
+                  ...location,
+                  label: getLocationLabel({
+                    ...location,
+                    country: "India",
+                  }),
+                  sourceLabel: address.is_default
+                    ? "Default saved address"
+                    : address.full_name || "Saved address",
+                };
+              })
+              .filter((address) =>
+                /^[1-9]\d{5}$/.test(String(address.pincode).trim())
+              )
+          : [];
+      } catch (error) {
+        console.warn(
+          "Could not load saved addresses:",
+          error.response?.data || error
+        );
+      }
+
+      if (locations.length === 0) {
+        try {
+          const orderResponse = await api.get("/orders/");
+          const orders = orderResponse.data?.results || orderResponse.data || [];
+          if (Array.isArray(orders)) {
+            const recentOrder = orders.find(
+              (order) => order.shipping_address
+            );
+            if (recentOrder) {
+              const location = getAddressLocation(recentOrder.shipping_address);
+              if (/^[1-9]\d{5}$/.test(String(location.pincode).trim())) {
+                locations = [
+                  {
+                    ...location,
+                    label: getLocationLabel({
+                      ...location,
+                      country: "India",
+                    }),
+                    sourceLabel: "From a recent order",
+                  },
+                ];
+              }
+            }
+          }
+        } catch (error) {
+          console.error(
+            "Could not load recent order address:",
+            error.response?.data || error
+          );
+        }
+      }
+      if (active) {
+        setSavedAddresses(locations.slice(0, 3));
+        setSavedAddressLoading(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, locationOpen]);
+
   const currentPinLookup =
     pinLookup.pin === draftPinCode.trim() && draftCountry === "India"
       ? pinLookup
       : {
           pin: draftPinCode.trim(),
           status: "idle",
+          area: "",
           district: "",
           city: "",
           state: "",
@@ -188,32 +331,18 @@ function Navbar() {
   }, []);
 
   const suggestions = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
-    if (!query) return [];
+    const rawQuery = searchTerm.trim().toLowerCase();
+    if (!rawQuery) return [];
 
     return products
       .filter((product) => {
-        const name = String(
-          product.name ||
-            product.title ||
-            product.product_name ||
-            product.productName ||
-            ""
-        ).toLowerCase();
         const categoryValue =
           product.category_name ||
-          product.category?.name ||
-          product.category?.title ||
-          product.category ||
+          (typeof product.category === "object"
+            ? product.category?.name || product.category?.title || product.category?.slug
+            : product.category) ||
           "";
-        const category = String(categoryValue).toLowerCase();
-        const description = String(product.description || "").toLowerCase();
-
-        return (
-          name.includes(query) ||
-          category.includes(query) ||
-          description.includes(query)
-        );
+        return productMatchesSearch(product, rawQuery, String(categoryValue));
       })
       .slice(0, 6);
   }, [products, searchTerm]);
@@ -268,38 +397,160 @@ function Navbar() {
     }
   };
 
-  const applyLocation = (event) => {
-    event.preventDefault();
-    const cleanPin = draftPinCode.trim();
-    if (!/^\d{6}$/.test(cleanPin)) {
-      setLocationError("Enter a valid 6-digit PIN code.");
+  const saveDeliveryLocation = (value) => {
+    let nextLocation;
+    try {
+      nextLocation = persistDeliveryLocation({
+      country: value.country || "India",
+      area: value.area || "",
+      city: value.city || "",
+      state: value.state || "",
+      pincode: value.pincode || "",
+      label: value.label || getLocationLabel(value),
+      });
+    } catch (error) {
+      console.error("Could not save delivery location:", error);
+      setLocationError("Could not save your location. Please try again.");
+      return false;
+    }
+
+    setDeliveryLocation(nextLocation);
+    window.dispatchEvent(
+      new CustomEvent(DELIVERY_LOCATION_EVENT, { detail: nextLocation })
+    );
+    setLocationError("");
+    setSavedAddressLoading(false);
+    setLocationOpen(false);
+    return true;
+  };
+
+  const selectSavedAddress = (address) => {
+    const nextLocation = {
+      country: "India",
+      area: address.area || "",
+      city: address.city || "",
+      state: address.state || "",
+      pincode: address.pincode,
+    };
+    setDraftCountry("India");
+    setDraftPinCode(address.pincode);
+    saveDeliveryLocation(nextLocation);
+  };
+
+  const detectCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError("Location detection is not supported by this browser.");
       return;
     }
 
-    try {
-      window.localStorage.setItem("nexoraCountry", draftCountry);
-      window.localStorage.setItem("nexoraPinCode", cleanPin);
-      if (draftCountry === "India" && currentPinLookup.status === "success") {
-        window.localStorage.setItem(
-          "nexoraDeliveryCity",
-          currentPinLookup.city || currentPinLookup.district || ""
+    setLocationError("");
+    setDetectingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const query = new URLSearchParams({
+            latitude: String(coords.latitude),
+            longitude: String(coords.longitude),
+            localityLanguage: "en",
+          });
+          const response = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?${query}`
+          );
+          if (!response.ok) {
+            throw new Error("Could not look up your current location.");
+          }
+
+          const result = await response.json();
+          const pincode = String(result.postcode || "")
+            .replace(/\D/g, "")
+            .slice(0, 6);
+          if (result.countryCode !== "IN") {
+            throw new Error("Automatic delivery detection is available for India.");
+          }
+          if (!/^[1-9]\d{5}$/.test(pincode)) {
+            throw new Error(
+              "We could not find a valid Indian PIN code nearby. Enter it below."
+            );
+          }
+
+          const area = result.locality || "";
+          const city =
+            result.city ||
+            result.locality ||
+            result.localityInfo?.administrative?.[0]?.name ||
+            "";
+          const state = result.principalSubdivision || "";
+          setDraftCountry("India");
+          setDraftPinCode(pincode);
+          setPinLookup({
+            pin: pincode,
+            status: "success",
+            area,
+            district: city,
+            city,
+            state,
+          });
+        } catch (error) {
+          console.error("Reverse geocoding failed:", error);
+          setLocationError(
+            error.message ||
+              "Could not detect your address. Enter your PIN code manually."
+          );
+        } finally {
+          setDetectingLocation(false);
+        }
+      },
+      (error) => {
+        setDetectingLocation(false);
+        setLocationError(
+          error.code === 1
+            ? "Location permission was denied. Enter your PIN code manually."
+            : "Could not access your current location. Enter your PIN code manually."
         );
-      } else {
-        window.localStorage.removeItem("nexoraDeliveryCity");
-      }
-    } catch (error) {
-      console.error("Could not save delivery location:", error);
+      },
+      { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 }
+    );
+  };
+
+  const applyLocation = (event) => {
+    event.preventDefault();
+    const cleanPin = draftPinCode.trim();
+    const validPin =
+      draftCountry === "India"
+        ? /^[1-9]\d{5}$/.test(cleanPin)
+        : /^\d{6}$/.test(cleanPin);
+    if (!validPin) {
+      setLocationError("Enter a valid 6-digit PIN code.");
+      return;
+    }
+    if (
+      draftCountry === "India" &&
+      ["idle", "loading"].includes(currentPinLookup.status)
+    ) {
+      setLocationError("Please wait while we look up this PIN code.");
+      return;
+    }
+    if (draftCountry === "India" && currentPinLookup.status === "invalid") {
+      setLocationError("PIN code not found. Please check the 6 digits.");
+      return;
     }
 
-    setCountry(draftCountry);
-    setPinCode(cleanPin);
-    const detectedCity =
-      draftCountry === "India" && currentPinLookup.status === "success"
-        ? currentPinLookup.city || currentPinLookup.district || ""
-        : "";
-    setDeliveryCity(detectedCity);
-    setLocationError("");
-    setLocationOpen(false);
+    saveDeliveryLocation({
+      country: draftCountry,
+      pincode: cleanPin,
+      area:
+        draftCountry === "India" && currentPinLookup.status === "success"
+          ? currentPinLookup.area
+          : "",
+      city:
+        draftCountry === "India" && currentPinLookup.status === "success"
+          ? currentPinLookup.city || currentPinLookup.district
+          : "",
+      state:
+        draftCountry === "India" && currentPinLookup.status === "success"
+          ? currentPinLookup.state
+          : "",
+    });
   };
 
   const categoryIsActive = (value) =>
@@ -329,6 +580,7 @@ function Navbar() {
               setDraftCountry(country);
               setDraftPinCode(pinCode);
               setLocationError("");
+              setSavedAddressLoading(isAuthenticated);
               setLocationOpen(true);
             }}
             aria-label="Choose delivery location"
@@ -337,9 +589,7 @@ function Navbar() {
             <span className="nexora-delivery-copy">
               <small>Deliver to</small>
               <strong>
-                {country === "India" && deliveryCity
-                  ? `${deliveryCity}${pinCode ? ` ${pinCode}` : ""}`
-                  : `${country}${pinCode ? ` ${pinCode}` : ""}`}
+                {deliveryLocation.label || getLocationLabel(deliveryLocation)}
               </strong>
             </span>
             <ChevronRight className="nexora-delivery-chevron" size={14} />
@@ -351,7 +601,7 @@ function Navbar() {
             role="search"
           >
             <input
-              type="search"
+              type="text"
               aria-label="Search products"
               placeholder="Search Nexora products..."
               value={searchTerm}
@@ -479,22 +729,49 @@ function Navbar() {
         </div>
 
         <nav className="nexora-category-nav" aria-label="Product categories">
-          <Link to="/products" className={navClass(isAllProducts)}>
-            <Menu size={16} /> All Products
+          <Link
+            to="/products"
+            className={navClass(isAllProducts)}
+          >
+            <span className="nexora-category-icon">
+              <ShoppingBag size={16} aria-hidden="true" />
+            </span>
+            <span className="nexora-category-label">All Products</span>
           </Link>
           <Link to="/" className={navClass(isHome)}>
-            Home
+            <span className="nexora-category-icon">
+              <HomeIcon size={16} aria-hidden="true" />
+            </span>
+            <span className="nexora-category-label">Home</span>
           </Link>
-          {categories.map((category) => (
+          {categories.map(({ label, value, Icon }) => (
             <Link
-              key={category.value}
-              to={`/products?category=${encodeURIComponent(category.value)}`}
-              className={navClass(categoryIsActive(category.value))}
+              key={value}
+              to={`/products?category=${encodeURIComponent(value)}`}
+              className={navClass(categoryIsActive(value))}
             >
-              {category.label}
+              <span className="nexora-category-icon">
+                <Icon size={16} aria-hidden="true" />
+              </span>
+              <span className="nexora-category-label">{label}</span>
             </Link>
           ))}
           <div className="nexora-nav-spacer" />
+          <Link
+            to="/faq"
+            className={`${navClass(location.pathname === "/faq")} nexora-nav-utility`}
+          >
+            <CircleHelp size={15} aria-hidden="true" />
+            <span>FAQ</span>
+          </Link>
+          <Link
+            to="/contact"
+            className={`${navClass(location.pathname === "/contact")} nexora-nav-utility`}
+            title="Contact Us"
+          >
+            <Headphones size={15} aria-hidden="true" />
+            <span>Contact Us</span>
+          </Link>
           {isAuthenticated ? (
             <button
               type="button"
@@ -506,8 +783,9 @@ function Navbar() {
           ) : (
             <Link
               to="/register"
-              className={navClass(location.pathname === "/register")}
+              className={`${navClass(location.pathname === "/register")} nexora-nav-utility`}
             >
+              <UserRound size={15} aria-hidden="true" />
               Create Account
             </Link>
           )}
@@ -519,7 +797,10 @@ function Navbar() {
           className="nexora-modal-backdrop"
           role="presentation"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setLocationOpen(false);
+            if (event.target === event.currentTarget) {
+              setSavedAddressLoading(false);
+              setLocationOpen(false);
+            }
           }}
         >
           <section
@@ -539,12 +820,58 @@ function Navbar() {
               <button
                 type="button"
                 className="nexora-modal-close"
-                onClick={() => setLocationOpen(false)}
+                onClick={() => {
+                  setSavedAddressLoading(false);
+                  setLocationOpen(false);
+                }}
                 aria-label="Close"
               >
                 <X size={20} />
               </button>
             </div>
+
+            <button
+              type="button"
+              className="nexora-detect-location"
+              onClick={detectCurrentLocation}
+              disabled={detectingLocation}
+            >
+              <LocateFixed size={17} aria-hidden="true" />
+              {detectingLocation
+                ? "Detecting your location…"
+                : "Use my current location"}
+            </button>
+
+            {isAuthenticated && (
+              <div className="nexora-saved-addresses">
+                <span className="nexora-saved-address-heading">
+                  Select Saved Address
+                </span>
+                {savedAddressLoading ? (
+                  <p className="nexora-pin-status">Loading saved addresses…</p>
+                ) : savedAddresses.length ? (
+                  savedAddresses.map((address, index) => (
+                    <button
+                      type="button"
+                      className="nexora-saved-address"
+                      key={address.id || `${address.pincode}-${index}`}
+                      onClick={() => selectSavedAddress(address)}
+                    >
+                      <MapPin size={16} aria-hidden="true" />
+                      <span>
+                        <strong>{address.label}</strong>
+                        <small>{address.sourceLabel}</small>
+                      </span>
+                      <ChevronRight size={16} aria-hidden="true" />
+                    </button>
+                  ))
+                ) : (
+                  <p className="nexora-pin-status">
+                    No saved delivery address found yet.
+                  </p>
+                )}
+              </div>
+            )}
 
             <form onSubmit={applyLocation}>
               <label className="nexora-field-label" htmlFor="nexora-country">
@@ -572,7 +899,7 @@ function Navbar() {
                 inputMode="numeric"
                 autoComplete="postal-code"
                 maxLength={6}
-                placeholder="e.g. 110001"
+                placeholder="e.g. 500072"
                 value={draftPinCode}
                 onChange={(event) => {
                   setDraftPinCode(
@@ -591,7 +918,12 @@ function Navbar() {
                   <MapPin size={16} />
                   <span>
                     <strong>
-                      {currentPinLookup.city || currentPinLookup.district}
+                      {currentPinLookup.area &&
+                      currentPinLookup.city &&
+                      currentPinLookup.area.toLowerCase() !==
+                        currentPinLookup.city.toLowerCase()
+                        ? `${currentPinLookup.area}, ${currentPinLookup.city}`
+                        : currentPinLookup.city || currentPinLookup.district}
                       {currentPinLookup.state
                         ? `, ${currentPinLookup.state}`
                         : ""}
@@ -609,8 +941,8 @@ function Navbar() {
 
               {currentPinLookup.status === "unavailable" && (
                 <p className="nexora-pin-status">
-                  Could not fetch location right now. Check your connection and
-                  try again.
+                  Postal details are unavailable right now. You can still use
+                  this valid PIN code.
                 </p>
               )}
 
@@ -619,7 +951,7 @@ function Navbar() {
               )}
 
               <button type="submit" className="nexora-apply-location">
-                Apply location
+                Apply
               </button>
               <p className="nexora-location-note">
                 Your selection is saved in this browser for your next visit.
@@ -643,7 +975,7 @@ function Navbar() {
         .nexora-delivery-chevron{opacity:.65}
         .nexora-search{position:relative;display:flex;flex:1;min-width:100px;height:42px;overflow:visible;border:2px solid #0f766e;border-radius:6px;background:#fff;box-sizing:border-box}
         .nexora-search:focus-within{border-color:#5eead4;box-shadow:0 0 0 2px rgba(94,234,212,.2)}
-        .nexora-search input[type="search"]{flex:1;width:100%;min-width:0;padding:0 14px;border:0;outline:0;border-radius:5px;background:#fff;color:#111827;font-size:14px}
+        .nexora-search input[type="text"]{flex:1;width:100%;min-width:0;padding:0 14px;border:0;outline:0;border-radius:5px;background:#fff;color:#111827;font-size:14px}
         .nexora-search>button[type="submit"]{display:flex;align-items:center;justify-content:center;width:48px;min-width:48px;border:0;border-radius:0 3px 3px 0;background:#0f766e;color:#fff;cursor:pointer}
         .nexora-search>button[type="submit"]:hover{background:#115e59}
         .nexora-search .nexora-search-clear{display:flex;align-items:center;justify-content:center;width:32px;min-width:32px;border:0;background:#fff;color:#6b7280;cursor:pointer}
@@ -662,14 +994,20 @@ function Navbar() {
         .nexora-account-links{display:flex;align-items:center;gap:4px;flex-shrink:0}
         .nexora-icon-link{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px;border:1px solid transparent;border-radius:5px;color:#fff;text-decoration:none;font-size:13px;font-weight:600;white-space:nowrap}
         .nexora-icon-link:hover{border-color:#5eead4;color:#5eead4}
-        .nexora-category-nav{display:flex;align-items:center;gap:5px;padding:7px 20px;overflow-x:auto;background:#1f2937;border-bottom:2px solid #0f766e;box-sizing:border-box;scrollbar-width:thin}
-        .nexora-nav-link{display:inline-flex;align-items:center;gap:5px;flex-shrink:0;padding:8px 10px;border:1px solid transparent;border-radius:5px;background:transparent;color:#fff;text-decoration:none;font-size:13px;font-weight:600;white-space:nowrap;transition:color .2s,border-color .2s}
-        .nexora-nav-link:hover,.nexora-nav-link.active{border-color:#5eead4;color:#5eead4}
-        .nexora-nav-spacer{flex:1;min-width:4px}
-        .nexora-logout{flex-shrink:0;padding:7px 12px;border:1px solid #0f766e;border-radius:5px;background:transparent;color:#5eead4;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap}
-        .nexora-logout:hover{background:#374151}
+        .nexora-category-nav{display:flex;align-items:center;justify-content:space-between;gap:3px;padding:7px clamp(10px,2vw,24px);overflow-x:auto;overflow-y:hidden;background:#fff;border-bottom:1px solid #e5e7eb;box-sizing:border-box;scrollbar-width:none;white-space:nowrap}
+        .nexora-category-nav::-webkit-scrollbar{display:none}
+        .nexora-nav-link{display:flex;min-width:64px;flex:0 0 auto;align-items:center;justify-content:center;flex-direction:column;gap:4px;padding:5px 5px;border:1px solid transparent;border-radius:8px;background:transparent;color:#364152;text-decoration:none;font-size:10px;font-weight:650;white-space:nowrap;transition:color .2s,border-color .2s,background .2s;box-sizing:border-box}
+        .nexora-category-icon{display:grid;width:27px;height:27px;place-items:center;border-radius:50%;background:#f1f5f5;color:#0f766e;transition:background .2s,color .2s}
+        .nexora-category-label{white-space:nowrap}
+        .nexora-nav-link:hover,.nexora-nav-link.active{border-color:#ccfbf1;background:#f0fdfa;color:#0f766e}
+        .nexora-nav-link:hover .nexora-category-icon,.nexora-nav-link.active .nexora-category-icon{background:#ccfbf1;color:#0f766e}
+        .nexora-nav-utility{min-width:auto;flex-direction:row;gap:5px;padding:8px 7px;color:#475569;font-size:11px}
+        .nexora-nav-utility svg{color:#0f766e;flex:0 0 auto}
+        .nexora-nav-spacer{flex:1 0 8px;min-width:8px}
+        .nexora-logout{flex-shrink:0;padding:7px 10px;border:1px solid #99f6e4;border-radius:7px;background:#fff;color:#0f766e;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap}
+        .nexora-logout:hover{background:#f0fdfa}
         .nexora-modal-backdrop{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.62);backdrop-filter:blur(3px)}
-        .nexora-location-modal{width:min(100%,440px);padding:25px;border:1px solid #e5e7eb;border-radius:16px;background:#fff;color:#111827;box-shadow:0 24px 70px rgba(0,0,0,.28);box-sizing:border-box}
+        .nexora-location-modal{width:min(100%,440px);max-height:calc(100vh - 40px);overflow-y:auto;padding:25px;border:1px solid #e5e7eb;border-radius:16px;background:#fff;color:#111827;box-shadow:0 24px 70px rgba(0,0,0,.28);box-sizing:border-box}
         .nexora-modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;margin-bottom:23px}
         .nexora-modal-eyebrow{display:flex;align-items:center;gap:6px;color:#0f766e;font-size:10px;font-weight:800;letter-spacing:.1em}
         .nexora-location-modal h2{margin:9px 0 6px;font-size:24px;letter-spacing:-.6px}
@@ -689,18 +1027,30 @@ function Navbar() {
         .nexora-pin-result span{display:flex;flex-direction:column;gap:3px}
         .nexora-pin-result strong{font-size:13px}
         .nexora-pin-result small{color:#0f766e;font-size:11px}
+        .nexora-detect-location{display:flex;width:100%;min-height:43px;align-items:center;justify-content:center;gap:8px;margin:0 0 16px;padding:8px 12px;border:1px solid #99f6e4;border-radius:7px;background:#f0fdfa;color:#0f766e;font-size:13px;font-weight:750;cursor:pointer}
+        .nexora-detect-location:hover{background:#ccfbf1}
+        .nexora-detect-location:disabled{opacity:.65;cursor:wait}
+        .nexora-saved-addresses{margin:0 0 18px}
+        .nexora-saved-address-heading{display:block;margin-bottom:8px;color:#374151;font-size:12px;font-weight:750}
+        .nexora-saved-address{display:flex;width:100%;align-items:center;gap:9px;margin-top:6px;padding:10px;border:1px solid #e5e7eb;border-radius:7px;background:#fff;color:#374151;text-align:left;cursor:pointer}
+        .nexora-saved-address:hover{border-color:#5eead4;background:#f0fdfa}
+        .nexora-saved-address>svg:first-child{flex:0 0 auto;color:#0f766e}
+        .nexora-saved-address>svg:last-child{flex:0 0 auto;margin-left:auto;color:#9ca3af}
+        .nexora-saved-address span{display:flex;min-width:0;flex-direction:column;gap:3px}
+        .nexora-saved-address strong{overflow:hidden;font-size:12px;text-overflow:ellipsis;white-space:nowrap}
+        .nexora-saved-address small{color:#6b7280;font-size:10px}
         @media(max-width:900px){
           .nexora-main-header{grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:10px 14px}
           .nexora-logo{grid-column:1;grid-row:1;font-size:26px}
-          .nexora-delivery{grid-column:1;grid-row:2;justify-self:start;min-width:0;padding:4px 0}
+          .nexora-delivery{grid-column:1 / -1;grid-row:2;justify-self:stretch;width:100%;min-width:0;min-height:38px;margin-top:2px;padding:6px 9px;border-radius:5px;background:#1f2937;box-sizing:border-box}
           .nexora-delivery-copy{display:block}
-          .nexora-delivery-copy strong{max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+          .nexora-delivery-copy strong{max-width:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
           .nexora-delivery-chevron{display:none}
           .nexora-search{grid-column:1 / -1;grid-row:3;width:100%;min-width:0;height:42px}
-          .nexora-account-links{grid-column:2;grid-row:1 / span 2;justify-self:end;gap:3px}
+          .nexora-account-links{grid-column:2;grid-row:1;justify-self:end;gap:3px}
           .nexora-icon-link{padding:7px}
           .nexora-icon-link span{display:none}
-          .nexora-category-nav{gap:4px;padding:7px 12px}
+          .nexora-category-nav{justify-content:flex-start;gap:3px;padding:6px 10px}
         }
         @media(max-width:600px){
           .nexora-main-header{grid-template-columns:minmax(0,1fr) auto;gap:7px;padding:9px 10px}
@@ -712,13 +1062,15 @@ function Navbar() {
           .nexora-icon-link{padding:6px}
           .nexora-icon-link svg{width:21px;height:21px}
           .nexora-search{grid-column:1 / -1;grid-row:3;height:40px}
-          .nexora-search input[type="search"]{font-size:14px;padding-inline:11px}
+          .nexora-search input[type="text"]{font-size:14px;padding-inline:11px}
           .nexora-search>button[type="submit"]{width:43px;min-width:43px}
-          .nexora-category-nav{gap:4px;padding:6px 8px;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:none;white-space:nowrap}
-          .nexora-category-nav::-webkit-scrollbar{display:none}
-          .nexora-nav-link{flex:0 0 auto;padding:8px 9px;font-size:12px}
-          .nexora-nav-spacer{flex:0 0 4px}
-          .nexora-logout{flex:0 0 auto;padding:7px 10px}
+          .nexora-category-nav{gap:3px;padding:5px 7px;overscroll-behavior-x:contain}
+          .nexora-nav-link{min-width:64px;padding:5px 4px;font-size:9px}
+          .nexora-category-icon{width:25px;height:25px}
+          .nexora-nav-utility{min-width:auto;padding:7px 6px;font-size:10px}
+          .nexora-nav-spacer{flex:0 0 5px;min-width:5px}
+          .nexora-logout{flex:0 0 auto;padding:7px 10px;color:#0f766e;border-color:#99f6e4}
+          .nexora-logout:hover{background:#f0fdfa}
         }
         @media(max-width:380px){
           .nexora-logo{font-size:22px}
@@ -727,7 +1079,7 @@ function Navbar() {
           .nexora-icon-link svg{width:19px;height:19px}
           .nexora-delivery-copy strong{max-width:118px;font-size:11px}
           .nexora-category-nav{padding-inline:6px}
-          .nexora-nav-link{padding-inline:8px;font-size:11px}
+          .nexora-nav-link{min-width:60px;padding-inline:3px;font-size:9px}
         }
       `}</style>
     </>
