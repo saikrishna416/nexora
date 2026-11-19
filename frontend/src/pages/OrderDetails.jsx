@@ -75,7 +75,6 @@ const EXCHANGE_VARIANT_DEFINITIONS = {
     baseKey: "8/512",
     options: [
       { key: "8/512", label: "8 GB RAM | 512 GB SSD", offset: 0 },
-      { key: "16/512", label: "16 GB RAM | 512 GB SSD", offset: 6000 },
       { key: "16/1024", label: "16 GB RAM | 1 TB SSD", offset: 14000 },
     ],
   },
@@ -204,6 +203,15 @@ function getExchangeVariantConfig(product) {
     product?.product_name || product?.name || product?.title || ""
   ).toLowerCase();
   const text = `${category} ${name}`.replace(/[-_]/g, " ");
+  const isMobileOrTablet =
+    /\b(mobiles?|mobile phones?|smartphones?|smart phones?|phones?|tablets?|ipad|iphone)\b/.test(
+      text
+    );
+  const isLaptopCategory = /\blaptops?\b/.test(category);
+  const isLaptopName =
+    /\b(laptop|macbook|thinkpad|galaxy\s+book|book\s*4|vivobook|ideapad|zenbook|pavilion|inspiron|latitude|rog|tuf|ultrabook|victus)\b/.test(
+      name
+    );
   let type = "";
 
   if (/\b(washing machines?|front load|top load|semi automatic|fully automatic|washers?|refrigerator|fridge|frost free|single door|double door)\b/.test(text)) {
@@ -211,8 +219,8 @@ function getExchangeVariantConfig(product) {
   }
   if (/\biphone\b/.test(name)) type = "iphone";
   else if (/\b(s26|galaxy s26)\b/.test(name)) type = "s26";
-  else if (/\bgalaxy\s+book\b/.test(name)) type = "galaxyBook";
-  else if (/\b(laptop|macbook|book|ideapad|pavilion|inspiron|vivobook|thinkpad|victus|rog|tuf)\b/.test(text)) {
+  else if (!isMobileOrTablet && /\bgalaxy\s+book\b/.test(name)) type = "galaxyBook";
+  else if (!isMobileOrTablet && (isLaptopCategory || isLaptopName)) {
     type = "laptop";
   } else if (/\b(tvs?|televisions?|bravia|qled|oled|uhd|smart tv)\b/.test(text)) {
     type = "television";
