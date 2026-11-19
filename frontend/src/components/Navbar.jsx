@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { productMatchesSearch } from "../utils/productSearch";
 import api from "../services/api";
+import { getCachedProducts } from "../utils/productCatalogCache";
 import {
   getSavedDeliveryLocation,
   lookupIndianPincode,
@@ -93,16 +94,6 @@ const categories = [
   { label: "Beauty", value: "Beauty & Personal Care", Icon: Sparkles },
   { label: "Sports", value: "Sports & Fitness", Icon: Dumbbell },
 ];
-
-const RAW_API_URL = (
-  import.meta.env.VITE_API_URL ||
-  `${window.location.protocol}//${window.location.hostname}:8000/api`
-).replace(/\/$/, "");
-
-// Normalize base URL so it never produces /api/api/products/
-const API_BASE_URL = RAW_API_URL.endsWith("/api")
-  ? RAW_API_URL
-  : `${RAW_API_URL}/api`;
 
 function Navbar() {
   const { isAuthenticated, logout } = useAuth();
@@ -294,40 +285,21 @@ function Navbar() {
           state: "",
         };
 
-  // Load product data from Django REST endpoint without duplicate /api/api/ calls.
+  // Load cached catalog data for search suggestions.
   useEffect(() => {
-    const controller = new AbortController();
+    let active = true;
+    getCachedProducts(api)
+      .then((list) => {
+        if (active) setProducts(list);
+      })
+      .catch((error) => {
+        console.error("Failed to load navbar products:", error);
+        if (active) setProducts([]);
+      });
 
-    async function loadProducts() {
-      const urls = [
-        `${API_BASE_URL}/products/?page_size=100`,
-        `${API_BASE_URL}/products/`,
-      ];
-
-      for (const url of urls) {
-        try {
-          const response = await fetch(url, { signal: controller.signal });
-          if (!response.ok) continue;
-
-          const data = await response.json();
-          const list = Array.isArray(data)
-            ? data
-            : data.results || data.products || data.data || data.items || [];
-
-          if (Array.isArray(list) && list.length) {
-            setProducts(list);
-            return;
-          }
-        } catch (error) {
-          if (error.name === "AbortError") return;
-        }
-      }
-
-      if (!controller.signal.aborted) setProducts([]);
-    }
-
-    loadProducts();
-    return () => controller.abort();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const suggestions = useMemo(() => {

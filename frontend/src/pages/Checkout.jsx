@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import api, { API_ORIGIN } from "../services/api";
+import { invalidateProductsCache } from "../utils/productCatalogCache";
 
 function getNestedImage(image) {
   if (typeof image === "string") return image;
@@ -236,6 +237,7 @@ const products = useMemo(() => {
             })),
           });
 
+      invalidateProductsCache();
       localStorage.setItem(
         "shipping_address",
         shippingAddress.trim()

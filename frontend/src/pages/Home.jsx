@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/useAuth";
 import api, { API_ORIGIN } from "../services/api";
+import { getCachedProducts } from "../utils/productCatalogCache";
 import "./Home.css";
 
 const GUEST_CART_KEY = "nexora_guest_cart";
@@ -324,11 +325,9 @@ function Home() {
 
   useEffect(() => {
     let active = true;
-    api
-      .get("/products/?page_size=100")
-      .then((response) => {
-        const data = response.data?.results ?? response.data;
-        if (active) setProducts(Array.isArray(data) ? data : []);
+    getCachedProducts(api)
+      .then((data) => {
+        if (active) setProducts(data);
       })
       .catch((error) => {
         console.error("Failed to load home products:", error);
@@ -563,6 +562,7 @@ function Home() {
           <div className="nx-home-hero-controls">
             <button
               type="button"
+              className="nx-home-hero-arrow"
               aria-label="Previous promotion"
               onClick={() =>
                 setActiveSlide(
@@ -586,6 +586,7 @@ function Home() {
             ))}
             <button
               type="button"
+              className="nx-home-hero-arrow"
               aria-label="Next promotion"
               onClick={() =>
                 setActiveSlide((activeSlide + 1) % heroSlides.length)

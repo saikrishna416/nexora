@@ -6,6 +6,7 @@ import { ChevronRight, Star } from "lucide-react";
 
 import api from "../services/api";
 import { productMatchesSearch } from "../utils/productSearch";
+import { getCachedProducts } from "../utils/productCatalogCache";
 
 
 
@@ -57,16 +58,10 @@ function Products() {
   useEffect(() => {
     let active = true;
 
-    const endpoint = searchQuery
-      ? `/products/?page_size=100&search=${encodeURIComponent(searchQuery)}`
-      : `/products/?page_size=100`;
-
-    api
-      .get(endpoint)
-      .then((response) => {
-        const data = response?.data?.results ?? response?.data;
+    getCachedProducts(api)
+      .then((data) => {
         if (active) {
-          setProducts(Array.isArray(data) ? data : []);
+          setProducts(data);
           setError("");
         }
       })

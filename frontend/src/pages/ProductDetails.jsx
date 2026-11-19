@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import api from "../services/api";
+import { getCachedProducts } from "../utils/productCatalogCache";
 import {
   getSavedDeliveryLocation,
   lookupIndianPincode,
@@ -846,30 +847,15 @@ function ProductDetails() {
 
       });
 
-    api
-
-      .get("/products/?page_size=100")
-
-      .then((response) => {
-
-        const data =
-
-          response.data.results || response.data;
-
-        if (active && Array.isArray(data)) {
-
+    getCachedProducts(api)
+      .then((data) => {
+        if (active) {
           setRecommendations(
-
             data.filter(
-
               (item) => String(item.id) !== String(id)
-
             )
-
           );
-
         }
-
       })
 
       .catch((err) => {

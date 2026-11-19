@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import api from "../services/api";
+import { invalidateProductsCache } from "../utils/productCatalogCache";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -149,6 +150,7 @@ function ReviewModal({ item, onClose, onSubmitted }) {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
+      invalidateProductsCache();
       setSuccess(true);
       photos.forEach((p) => URL.revokeObjectURL(p.preview));
       setTimeout(() => {

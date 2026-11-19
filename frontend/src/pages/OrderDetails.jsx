@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import api from "../services/api";
+import { getCachedProducts, invalidateProductsCache } from "../utils/productCatalogCache";
 import { formatOrderId } from "../utils/orderFormat";
 import {
   getOrderTrackingState,
@@ -804,8 +805,7 @@ function OrderDetailsContent({ id }) {
     let active = true;
     const fetchReplacementProducts = async () => {
       try {
-        const response = await api.get("/products/?page_size=100");
-        const payload = response.data?.results ?? response.data;
+        const payload = await getCachedProducts(api);
         if (active) {
           if (!Array.isArray(payload)) {
             setReplacementProductsError(
@@ -852,6 +852,7 @@ function OrderDetailsContent({ id }) {
       const response = await api.patch(`/orders/${id}/cancel/`, {
         reason: cancellationReason,
       });
+      invalidateProductsCache();
       const refreshedResponse = await api.get(`/orders/${id}/`);
       setOrder(refreshedResponse.data.order || refreshedResponse.data);
       setShowCancelModal(false);
