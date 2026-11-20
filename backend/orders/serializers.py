@@ -52,6 +52,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "payment_method",
             "razorpay_payment_id",
             "shipping_address",
+            "return_request",
             "items",
             "created_at",
             "updated_at",
@@ -63,6 +64,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "total_amount",
             "status",
             "payment_status",
+            "return_request",
             "items",
             "created_at",
             "updated_at",
@@ -72,6 +74,8 @@ class AdminOrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     payment_method = serializers.SerializerMethodField()
     razorpay_payment_id = serializers.SerializerMethodField()
+    payment_transaction_id = serializers.SerializerMethodField()
+    customer_name = serializers.SerializerMethodField()
     username = serializers.CharField(
         source="user.username",
         read_only=True
@@ -89,30 +93,45 @@ class AdminOrderSerializer(serializers.ModelSerializer):
         payment = getattr(order, "payment", None)
         return payment.razorpay_payment_id if payment else None
 
+    def get_payment_transaction_id(self, order):
+        payment = getattr(order, "payment", None)
+        return payment.transaction_id if payment else None
+
+    def get_customer_name(self, order):
+        return " ".join(
+            name for name in (order.user.first_name, order.user.last_name) if name
+        ) or order.user.username
+
     class Meta:
         model = Order
         fields = [
             "id",
+            "order_number",
             "user",
             "username",
             "email",
+            "customer_name",
             "total_amount",
             "status",
             "payment_status",
             "payment_method",
             "razorpay_payment_id",
+            "payment_transaction_id",
             "shipping_address",
+            "return_request",
             "items",
             "created_at",
             "updated_at",
         ]
         read_only_fields = [
             "id",
+            "order_number",
             "user",
             "username",
             "email",
             "total_amount",
             "payment_status",
+            "return_request",
             "items",
             "created_at",
             "updated_at",
@@ -121,12 +140,13 @@ class AdminOrderSerializer(serializers.ModelSerializer):
 class AdminOrderStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
-        fields = ["status"]
+        fields = ["status", "payment_status"]
 
     def validate_status(self, value):
         valid_statuses = [
             "pending",
             "confirmed",
+            "processing",
             "shipped",
             "delivered",
             "cancelled",

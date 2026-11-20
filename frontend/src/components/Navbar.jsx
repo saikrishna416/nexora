@@ -22,6 +22,7 @@ import {
   X,
   ChevronRight,
   Headphones,
+  ShieldCheck,
 } from "lucide-react";
 import { productMatchesSearch } from "../utils/productSearch";
 import api from "../services/api";
@@ -96,7 +97,8 @@ const categories = [
 ];
 
 function Navbar() {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, user } = useAuth();
+  const isAdmin = Boolean(user?.is_staff || user?.is_superuser);
   const navigate = useNavigate();
   const location = useLocation();
   const params = new URLSearchParams(location.search);
@@ -668,6 +670,17 @@ function Navbar() {
                   <UserRound size={21} />
                   <span>Account</span>
                 </Link>
+                {isAdmin && (
+                  <Link
+                    to="/admin-dashboard"
+                    className="nexora-icon-link nexora-admin-link"
+                    aria-label="Open Admin Dashboard"
+                    title="Admin Dashboard"
+                  >
+                    <ShieldCheck size={21} aria-hidden="true" />
+                    <span>Admin</span>
+                  </Link>
+                )}
                 <Link to="/orders" className="nexora-icon-link">
                   Orders
                 </Link>
@@ -966,6 +979,7 @@ function Navbar() {
         .nexora-account-links{display:flex;align-items:center;gap:4px;flex-shrink:0}
         .nexora-icon-link{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px;border:1px solid transparent;border-radius:5px;color:#fff;text-decoration:none;font-size:13px;font-weight:600;white-space:nowrap}
         .nexora-icon-link:hover{border-color:#5eead4;color:#5eead4}
+        .nexora-admin-link{border-color:#5eead4;background:rgba(13,148,136,.2);color:#99f6e4}
         .nexora-category-nav{display:flex;align-items:center;justify-content:space-between;gap:3px;padding:7px clamp(10px,2vw,24px);overflow-x:auto;overflow-y:hidden;background:#fff;border-bottom:1px solid #e5e7eb;box-sizing:border-box;scrollbar-width:none;white-space:nowrap}
         .nexora-category-nav::-webkit-scrollbar{display:none}
         .nexora-nav-link{display:flex;min-width:64px;flex:0 0 auto;align-items:center;justify-content:center;flex-direction:column;gap:4px;padding:5px 5px;border:1px solid transparent;border-radius:8px;background:transparent;color:#364152;text-decoration:none;font-size:10px;font-weight:650;white-space:nowrap;transition:color .2s,border-color .2s,background .2s;box-sizing:border-box}

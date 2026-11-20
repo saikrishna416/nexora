@@ -1071,6 +1071,46 @@
   overflow-wrap: anywhere;
 }
 
+.order-return-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.order-return-status-badge {
+  padding: 6px 9px;
+  border: 1px solid #d5e0e8;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.order-return-status-badge.is-completed {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.order-return-status-badge.is-rejected {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.order-return-rejected {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 12px;
+}
+
 .order-return-request-details {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

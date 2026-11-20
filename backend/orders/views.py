@@ -1,16 +1,24 @@
 import re
 from decimal import Decimal
+import uuid
+from datetime import timedelta
 
-from rest_framework.permissions import IsAdminUser
 from django.db import transaction
 from django.db.models import Prefetch
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import generics
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.permissions import IsAdminOrSuperuser
 from cart.models import Cart
+from rest_framework.exceptions import ValidationError
 from products.models import Product
+from payments.models import Payment
 
 from .models import Order, OrderItem, generate_buy_now_order_number
 from .serializers import (
@@ -477,10 +485,215 @@ class CancelOrderView(APIView):
             "message": "Order cancelled successfully.",
             "order": serializer.data
         }, status=200)
+
+
+RETURN_REQUEST_REASONS = {
+    "Wrong size / variant received",
+    "Damaged or defective product",
+    "Product not as described",
+    "Quality not as expected",
+    "Received wrong item",
+}
+RETURN_REQUEST_STATUSES = {
+    "requested",
+    "approved",
+    "pickup_scheduled",
+    "picked_up",
+    "completed",
+    "rejected",
+}
+
+
+class CustomerReturnExchangeRequestView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @transaction.atomic
+    def post(self, request, pk):
+        order = Order.objects.select_for_update().filter(
+            id=pk,
+            user=request.user,
+        ).first()
+        if not order:
+            return Response({"detail": "Order not found."}, status=404)
+        if order.status != "delivered":
+            return Response(
+                {"detail": "Return or exchange requests require a delivered order."},
+                status=400,
+            )
+        if order.return_request:
+            return Response(
+                {"detail": "A return or exchange request already exists for this order."},
+                status=409,
+            )
+
+        action_type = request.data.get("action_type")
+        reason = request.data.get("reason")
+        pickup_address = str(request.data.get("pickup_address") or "").strip()
+        selected_item_ids = request.data.get("selected_item_ids")
+        exchange_selection = request.data.get("exchange_selection")
+        note = str(request.data.get("note") or "").strip()
+
+        if not isinstance(action_type, str) or action_type not in {"return", "exchange"}:
+            raise ValidationError({"action_type": "Choose return or exchange."})
+        if not isinstance(reason, str) or reason not in RETURN_REQUEST_REASONS:
+            raise ValidationError({"reason": "Select a valid request reason."})
+        if not pickup_address or len(pickup_address) > 1000:
+            raise ValidationError({"pickup_address": "Enter a pickup address."})
+        if len(note) > 1000:
+            raise ValidationError({"note": "The note cannot exceed 1000 characters."})
+        if not isinstance(selected_item_ids, list) or not selected_item_ids:
+            raise ValidationError({"selected_item_ids": "Select at least one order item."})
+        try:
+            item_ids = [int(item_id) for item_id in selected_item_ids]
+        except (TypeError, ValueError):
+            raise ValidationError({"selected_item_ids": "Order item IDs must be integers."})
+        if len(set(item_ids)) != len(item_ids):
+            raise ValidationError({"selected_item_ids": "Order items must be unique."})
+        if action_type == "exchange" and len(item_ids) != 1:
+            raise ValidationError({"selected_item_ids": "Exchange one item at a time."})
+
+        items = list(
+            order.items.filter(id__in=item_ids).select_related(
+                "product__category"
+            )
+        )
+        if len(items) != len(item_ids):
+            raise ValidationError(
+                {"selected_item_ids": "One or more items do not belong to this order."}
+            )
+
+        delivered_at = order.updated_at or order.created_at
+        now = timezone.now()
+        for item in items:
+            category = str(
+                getattr(getattr(item.product, "category", None), "name", "")
+            ).lower()
+            name = item.product_name.lower()
+            window_days = (
+                7
+                if re.search(
+                    r"\b(electronics?|mobiles?|smartphones?|appliances?|laptops?|tablets?|televisions?|tvs?)\b",
+                    f"{category} {name}",
+                )
+                else 10
+            )
+            eligible_until = delivered_at + timedelta(days=window_days)
+            eligible_until = eligible_until.replace(
+                hour=23,
+                minute=59,
+                second=59,
+                microsecond=999999,
+            )
+            if now > eligible_until:
+                raise ValidationError(
+                    {"selected_item_ids": f"The return window for {item.product_name} has closed."}
+                )
+
+        if action_type == "exchange":
+            if not isinstance(exchange_selection, dict):
+                raise ValidationError(
+                    {"exchange_selection": "Choose an exchange option."}
+                )
+            if exchange_selection.get("mode") == "another_product":
+                try:
+                    replacement_id = int(exchange_selection.get("productId"))
+                except (TypeError, ValueError):
+                    raise ValidationError(
+                        {"exchange_selection": "Choose a valid replacement product."}
+                    )
+                if not Product.objects.filter(id=replacement_id, is_active=True).exists():
+                    raise ValidationError(
+                        {"exchange_selection": "The replacement product was not found."}
+                    )
+
+        local_now = timezone.localtime(now)
+        date_stamp = local_now.strftime("%Y%m%d")
+        request_prefix = "RET" if action_type == "return" else "EXC"
+        request_suffix = 100000 + (uuid.uuid4().int % 900000)
+        selected_items = [
+            {
+                "id": str(item.id),
+                "name": item.product_name,
+                "quantity": item.quantity,
+                "subtotal": str(item.subtotal),
+            }
+            for item in items
+        ]
+        request_amount = sum((item.subtotal for item in items), Decimal("0.00"))
+        request_data = {
+            "requestId": f"{request_prefix}-{date_stamp}-{request_suffix}",
+            "orderId": str(order.id),
+            "orderNumber": order.order_number,
+            "actionType": action_type,
+            "reason": reason,
+            "note": note,
+            "pickupAddress": pickup_address,
+            "requestedAt": now.isoformat(),
+            "selectedItems": selected_items,
+            "requestAmount": str(request_amount),
+            "exchangeSelection": exchange_selection if action_type == "exchange" else None,
+            "refundReferenceId": (
+                f"RFD-{date_stamp}-{100000 + (uuid.uuid4().int % 900000)}"
+                if action_type == "return"
+                else ""
+            ),
+            "status": "requested",
+            "statusUpdatedAt": now.isoformat(),
+        }
+        order.return_request = request_data
+        order.save(update_fields=["return_request", "updated_at"])
+        return Response(request_data, status=201)
+
+
+class AdminReturnRequestStatusView(APIView):
+    permission_classes = [IsAdminOrSuperuser]
+
+    @transaction.atomic
+    def patch(self, request, pk):
+        order = get_object_or_404(Order.objects.select_for_update(), pk=pk)
+        if not order.return_request:
+            return Response(
+                {"detail": "This order has no return or exchange request."},
+                status=404,
+            )
+        new_status = request.data.get("status")
+        if not isinstance(new_status, str) or new_status not in RETURN_REQUEST_STATUSES:
+            raise ValidationError({"status": "Choose a valid return or exchange status."})
+
+        request_data = {**order.return_request}
+        now = timezone.now()
+        request_data["status"] = new_status
+        request_data["statusUpdatedAt"] = now.isoformat()
+        if new_status == "completed":
+            request_data["completedAt"] = now.isoformat()
+            if request_data.get("actionType") == "return":
+                order.payment_status = "refunded"
+                Payment.objects.filter(order=order).update(
+                    status="refunded",
+                    updated_at=now,
+                )
+        order.return_request = request_data
+        update_fields = ["return_request", "updated_at"]
+        if order.payment_status == "refunded":
+            update_fields.append("payment_status")
+        order.save(update_fields=update_fields)
+        return Response(
+            {**request_data, "payment_status": order.payment_status},
+            status=200,
+        )
     
 class AdminOrderListView(generics.ListAPIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperuser]
     serializer_class = AdminOrderSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_fields = ["status", "payment_status"]
+    search_fields = [
+        "order_number",
+        "user__username",
+        "user__email",
+        "user__first_name",
+        "user__last_name",
+    ]
 
     def get_queryset(self):
         return Order.objects.all().select_related(
@@ -491,7 +704,7 @@ class AdminOrderListView(generics.ListAPIView):
 
 
 class AdminOrderDetailView(generics.RetrieveUpdateAPIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperuser]
     serializer_class = AdminOrderSerializer
 
     def get_queryset(self):
@@ -500,10 +713,25 @@ class AdminOrderDetailView(generics.RetrieveUpdateAPIView):
         ).select_related("payment").prefetch_related(
             Prefetch("items", queryset=OrderItem.objects.select_related("product__category"))
         )
-        
+
+
 class AdminOrderStatusUpdateView(generics.UpdateAPIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperuser]
     serializer_class = AdminOrderStatusSerializer
 
     def get_queryset(self):
         return Order.objects.all()
+
+    @transaction.atomic
+    def perform_update(self, serializer):
+        order = serializer.save()
+        payment_status = {
+            "pending": "pending",
+            "paid": "success",
+            "failed": "failed",
+            "refunded": "refunded",
+        }[order.payment_status]
+        Payment.objects.filter(order=order).update(
+            status=payment_status,
+            updated_at=timezone.now(),
+        )

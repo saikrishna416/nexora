@@ -1,9 +1,25 @@
+from django.contrib.auth import get_user_model
+from django.db.models import Count
 from rest_framework import generics
+from rest_framework.filters import SearchFilter
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.views import TokenObtainPairView
 
-from .serializers import RegisterSerializer, ProfileSerializer
+from core.permissions import IsAdminOrSuperuser
+from .serializers import (
+    AdminUserSerializer,
+    NexoraTokenObtainPairSerializer,
+    ProfileSerializer,
+    RegisterSerializer,
+)
+
+User = get_user_model()
+
+
+class LoginView(TokenObtainPairView):
+    serializer_class = NexoraTokenObtainPairSerializer
 
 
 class RegisterView(generics.CreateAPIView):
@@ -28,6 +44,24 @@ class ProfileView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class AdminUserListView(generics.ListAPIView):
+    permission_classes = [IsAdminOrSuperuser]
+    serializer_class = AdminUserSerializer
+    queryset = User.objects.annotate(
+        admin_order_count=Count("orders", distinct=True)
+    ).order_by("id")
+    filter_backends = [SearchFilter]
+    search_fields = ["username", "email", "first_name", "last_name"]
+
+
+class AdminUserDetailView(generics.RetrieveUpdateAPIView):
+    permission_classes = [IsAdminOrSuperuser]
+    serializer_class = AdminUserSerializer
+    queryset = User.objects.annotate(
+        admin_order_count=Count("orders", distinct=True)
+    ).order_by("id")
     
 
 from .models import SavedAddress

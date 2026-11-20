@@ -531,7 +531,21 @@ function ReturnTrackingCard({ request, now, paymentMethod }) {
     4,
     Math.floor(elapsed / RETURN_DEMO_STEP_MS) + 1
   );
-  const completedSteps = Math.max(realCompletedSteps, demoCompletedSteps);
+  const adminStepByStatus = {
+    requested: 1,
+    approved: 1,
+    pickup_scheduled: 2,
+    picked_up: 3,
+    completed: 4,
+  };
+  const isRejected = request.status === "rejected";
+  const completedSteps = isRejected
+    ? 1
+    : Math.max(
+        realCompletedSteps,
+        demoCompletedSteps,
+        adminStepByStatus[request.status] || 1
+      );
   const refundComplete = isReturn && completedSteps === 4;
   const exchangeComplete = !isReturn && completedSteps === 4;
   const originalPaymentMethod =
@@ -549,6 +563,14 @@ function ReturnTrackingCard({ request, now, paymentMethod }) {
     request.refundReferenceId ||
     `RFD-${String(request.requestId).replace(/^(RET|EXC)-/, "")}`;
   const exchangeSelection = request.exchangeSelection || null;
+  const requestStatusLabel = {
+    requested: "Requested",
+    approved: "Approved",
+    pickup_scheduled: "Pickup Scheduled",
+    picked_up: "Picked Up",
+    completed: "Completed",
+    rejected: "Rejected",
+  }[request.status] || "In Progress";
   const steps = [
     {
       label: isReturn ? "Return Requested" : "Exchange Requested",
@@ -590,7 +612,14 @@ function ReturnTrackingCard({ request, now, paymentMethod }) {
               : "Exchange (Replacement / Size-Variant Change)"}
           </p>
         </div>
-        <span className="order-return-request-badge">{request.requestId}</span>
+        <div className="order-return-badges">
+          <span className="order-return-request-badge">{request.requestId}</span>
+          {request.status && (
+            <span className={`order-return-status-badge is-${request.status}`}>
+              {requestStatusLabel}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="order-return-request-details">
@@ -701,6 +730,12 @@ function ReturnTrackingCard({ request, now, paymentMethod }) {
         })}
       </div>
 
+      {isRejected && (
+        <p className="order-return-rejected" role="status">
+          This return / exchange request was rejected. Contact Nexora Support for assistance.
+        </p>
+      )}
+
       {!isReturn && completedSteps === 3 && (
         <p className="order-return-outcome">Replacement item out for delivery.</p>
       )}
@@ -725,7 +760,7 @@ function ReturnTrackingCard({ request, now, paymentMethod }) {
         </div>
       )}
       <p className="order-return-demo-note">
-        Demo tracking advances automatically every 30 seconds. This request is saved in this browser.
+        Demo tracking advances automatically every 30 seconds. Request status is saved to your Nexora order.
       </p>
     </section>
   );
@@ -749,6 +784,7 @@ function OrderDetailsContent({ id }) {
   const setReturnError = (message) =>
     setReturnState((previous) => ({ ...previous, error: message }));
   const [showReturnModal, setShowReturnModal] = useState(false);
+  const [submittingReturn, setSubmittingReturn] = useState(false);
   const [returnNow, setReturnNow] = useState(() => new Date());
   const [returnForm, setReturnForm] = useState({
     actionType: "return",
@@ -778,7 +814,21 @@ function OrderDetailsContent({ id }) {
     const fetchOrder = async () => {
       try {
         const response = await api.get(`/orders/${id}/`);
-        if (active) setOrder(response.data.order || response.data);
+        const loadedOrder = response.data.order || response.data;
+        if (active) {
+          setOrder(loadedOrder);
+          if (loadedOrder.return_request) {
+            setReturnState({ request: loadedOrder.return_request, error: "" });
+            try {
+              window.localStorage.setItem(
+                `nexora:return-request:${loadedOrder.id}`,
+                JSON.stringify(loadedOrder.return_request)
+              );
+            } catch (storageError) {
+              console.warn("Could not cache the server return request locally:", storageError);
+            }
+          }
+        }
       } catch (err) {
         console.error("Load order error:", err.response?.data || err.message);
         if (active) {
@@ -1068,7 +1118,7 @@ function OrderDetailsContent({ id }) {
     setReplacementProductsLoading(mode === "another_product");
   };
 
-  const handleReturnRequestSubmit = (event) => {
+  const handleReturnRequestSubmit = async (event) => {
     event.preventDefault();
     setReturnError("");
 
@@ -1162,52 +1212,46 @@ function OrderDetailsContent({ id }) {
       }
     }
 
-    const requestedAt = new Date();
-    const dateStamp = requestedAt.toISOString().slice(0, 10).replace(/-/g, "");
-    const requestPrefix = returnForm.actionType === "return" ? "RET" : "EXC";
-    const randomSuffix = Math.floor(100000 + Math.random() * 900000);
-    const selectedItems = selectedEntries.map(({ item, key }) => ({
-      id: key,
-      name: item.product_name || "Product",
-      quantity: Number(item.quantity) || 1,
-      subtotal:
-        Number(item.subtotal) ||
-        (Number(item.price) || 0) * (Number(item.quantity) || 1),
-    }));
-    const request = {
-      requestId: `${requestPrefix}-${dateStamp}-${randomSuffix}`,
-      orderId: String(order.id),
-      orderNumber,
-      actionType: returnForm.actionType,
-      reason: returnForm.reason,
-      note: returnForm.note.trim(),
-      pickupAddress: returnForm.pickupAddress.trim(),
-      requestedAt: requestedAt.toISOString(),
-      selectedItems,
-      requestAmount: selectedItems.reduce((sum, item) => sum + item.subtotal, 0),
-      exchangeSelection,
-      refundReferenceId:
-        returnForm.actionType === "return"
-          ? `RFD-${dateStamp}-${Math.floor(100000 + Math.random() * 900000)}`
-          : "",
-    };
-
+    setSubmittingReturn(true);
     try {
-      window.localStorage.setItem(
-        `nexora:return-request:${order.id}`,
-        JSON.stringify(request)
+      const response = await api.post(`/orders/${order.id}/return-request/`, {
+        action_type: returnForm.actionType,
+        reason: returnForm.reason,
+        note: returnForm.note.trim(),
+        pickup_address: returnForm.pickupAddress.trim(),
+        selected_item_ids: selectedEntries.map(({ item, key }) => item.id ?? key),
+        exchange_selection: exchangeSelection,
+      });
+      const request = response.data;
+      try {
+        window.localStorage.setItem(
+          `nexora:return-request:${order.id}`,
+          JSON.stringify(request)
+        );
+      } catch (storageError) {
+        console.warn("Could not cache the server return request locally:", storageError);
+      }
+      setReturnRequest(request);
+      setReturnNow(new Date(request.requestedAt));
+      setShowReturnModal(false);
+    } catch (requestError) {
+      console.error(
+        "Could not submit return or exchange request:",
+        requestError.response?.data || requestError
       );
-    } catch (storageError) {
-      console.error("Could not save return request:", storageError);
+      const responseData = requestError.response?.data;
+      const firstFieldError =
+        responseData && typeof responseData === "object"
+          ? Object.values(responseData).flat().find(Boolean)
+          : null;
       setReturnError(
-        "Your request could not be saved in this browser. Check storage availability and try again."
+        responseData?.detail ||
+          (typeof firstFieldError === "string" ? firstFieldError : "") ||
+          "Your return or exchange request could not be submitted. Please try again."
       );
-      return;
+    } finally {
+      setSubmittingReturn(false);
     }
-
-    setReturnRequest(request);
-    setReturnNow(requestedAt);
-    setShowReturnModal(false);
   };
 
   return (
@@ -1997,8 +2041,9 @@ function OrderDetailsContent({ id }) {
               <button
                 className="order-action-button order-action-button--primary"
                 type="submit"
+                disabled={submittingReturn}
               >
-                Submit Request
+                {submittingReturn ? "Submitting…" : "Submit Request"}
               </button>
             </div>
           </form>

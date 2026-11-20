@@ -21,6 +21,7 @@ class Order(models.Model):
     STATUS_CHOICES = [
         ("pending", "Pending"),
         ("confirmed", "Confirmed"),
+        ("processing", "Processing"),
         ("shipped", "Shipped"),
         ("delivered", "Delivered"),
         ("cancelled", "Cancelled"),
@@ -64,6 +65,12 @@ class Order(models.Model):
     )
 
     shipping_address = models.TextField()
+
+    return_request = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Most recent customer return or exchange request and its tracking state.",
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
 

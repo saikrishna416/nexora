@@ -154,10 +154,30 @@
   color: #64748b;
 }
 
+.account-greeting-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
 .account-greeting-copy strong {
   color: #172033;
   font-size: 15px;
   overflow-wrap: anywhere;
+}
+
+.account-admin-badge {
+  padding: 3px 7px;
+  border: 1px solid #99f6e4;
+  border-radius: 999px;
+  background: #f0fdfa;
+  color: #0f766e;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-transform: uppercase;
 }
 
 .account-email-badge {
@@ -263,6 +283,35 @@
   color: #718096;
   font-size: 12px;
   line-height: 1.5;
+}
+
+.account-admin-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0 0 18px;
+  padding: 13px 15px;
+  border: 1px solid #b9e8e1;
+  border-radius: 10px;
+  background: #f0fdfa;
+}
+
+.account-admin-panel > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.account-admin-panel strong {
+  color: #115e59;
+  font-size: 13px;
+}
+
+.account-admin-panel span {
+  color: #55716e;
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .account-button {
@@ -919,6 +968,11 @@
     align-items: flex-start;
     gap: 9px;
     margin-bottom: 14px;
+  }
+
+  .account-admin-panel {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .account-section-heading h2,

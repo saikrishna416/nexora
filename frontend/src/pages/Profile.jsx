@@ -564,6 +564,7 @@ function Profile() {
   const verifiedEmail = Boolean(
     profile?.email_verified || profile?.is_email_verified
   );
+  const isAdmin = Boolean(profile?.is_staff || profile?.is_superuser);
 
   return (
     <main className="account-page">
@@ -605,7 +606,10 @@ function Profile() {
               </span>
               <div className="account-greeting-copy">
                 <span>Hello,</span>
-                <strong>{fullName || profile?.username || "Nexora member"}</strong>
+                <div className="account-greeting-name">
+                  <strong>{fullName || profile?.username || "Nexora member"}</strong>
+                  {isAdmin && <span className="account-admin-badge">Admin</span>}
+                </div>
                 <span className="account-email-badge">
                   <BadgeCheck size={14} aria-hidden="true" />
                   {verifiedEmail ? "Verified email" : "Email on account"}
@@ -700,6 +704,18 @@ function Profile() {
                   </button>
                 )}
               </div>
+
+              {isAdmin && (
+                <div className="account-admin-panel">
+                  <div>
+                    <strong>Administrator access</strong>
+                    <span>Manage store operations, orders, stock, and support tickets.</span>
+                  </div>
+                  <Link to="/admin-dashboard" className="account-button account-button--primary">
+                    Open Admin Dashboard <ArrowRight size={16} aria-hidden="true" />
+                  </Link>
+                </div>
+              )}
 
               {editingProfile ? (
                 <form className="account-form-grid" onSubmit={saveProfile}>

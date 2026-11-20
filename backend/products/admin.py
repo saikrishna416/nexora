@@ -10,8 +10,8 @@ class ProductImageInline(admin.TabularInline):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "parent")
-    search_fields = ("name",)
+    list_display = ("id", "name", "slug", "parent")
+    search_fields = ("name", "slug")
 
 
 @admin.register(Product)
@@ -21,11 +21,13 @@ class ProductAdmin(admin.ModelAdmin):
         "name",
         "category",
         "price",
+        "original_price",
         "stock",
         "is_active",
+        "is_featured",
     )
-    list_filter = ("category", "is_active")
-    search_fields = ("name", "description")
+    list_filter = ("category", "is_active", "is_featured")
+    search_fields = ("name", "slug", "description")
     inlines = [ProductImageInline]
 
 

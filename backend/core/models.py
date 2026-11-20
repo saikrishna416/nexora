@@ -44,6 +44,7 @@ class ContactInquiry(models.Model):
         default="new",
         db_index=True,
     )
+    admin_reply = models.TextField(blank=True, default="")
     internal_notes = models.TextField(
         blank=True,
         default="",

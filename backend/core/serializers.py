@@ -146,6 +146,7 @@ class ContactInquiryStatusSerializer(serializers.ModelSerializer):
             "status",
             "statusLabel",
             "latestUpdate",
+            "admin_reply",
         ]
 
     def get_subject(self, obj):
@@ -172,6 +173,52 @@ class ContactInquiryStatusSerializer(serializers.ModelSerializer):
                 "resolution details."
             ),
         }.get(obj.status, "Your enquiry was received and is queued for review.")
+
+
+class AdminContactInquirySerializer(serializers.ModelSerializer):
+    ticketId = serializers.CharField(source="public_ticket_id", read_only=True)
+    subject = serializers.SerializerMethodField()
+    category = serializers.SerializerMethodField()
+    createdAt = serializers.DateTimeField(source="created_at", read_only=True)
+    updatedAt = serializers.DateTimeField(source="updated_at", read_only=True)
+
+    class Meta:
+        model = ContactInquiry
+        fields = [
+            "id",
+            "ticketId",
+            "name",
+            "email",
+            "phone",
+            "order_id",
+            "subject",
+            "category",
+            "message",
+            "status",
+            "admin_reply",
+            "internal_notes",
+            "createdAt",
+            "updatedAt",
+        ]
+        read_only_fields = [
+            "id",
+            "ticketId",
+            "name",
+            "email",
+            "phone",
+            "order_id",
+            "subject",
+            "category",
+            "message",
+            "createdAt",
+            "updatedAt",
+        ]
+
+    def get_subject(self, obj):
+        return decode_contact_subject(obj.subject)[1]
+
+    def get_category(self, obj):
+        return decode_contact_subject(obj.subject)[0]
 
 
 class PublicBusinessPolicyConfigSerializer(serializers.ModelSerializer):

@@ -32,7 +32,15 @@ function Login() {
         password,
       });
 
-      login(response.data.access);
+      login(response.data.access, {
+        id: response.data.id,
+        username: response.data.username,
+        email: response.data.email,
+        first_name: response.data.first_name,
+        last_name: response.data.last_name,
+        is_staff: response.data.is_staff,
+        is_superuser: response.data.is_superuser,
+      });
       localStorage.setItem("refresh_token", response.data.refresh);
       navigate("/");
     } catch (error) {

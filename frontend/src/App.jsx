@@ -1,8 +1,15 @@
 
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import {
+  BrowserRouter,
+  Navigate,
+  Routes,
+  Route,
+  useLocation,
+} from "react-router-dom";
 
 import { AuthProvider } from "./context/AuthProvider";
+import { useAuth } from "./context/useAuth";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 
@@ -28,6 +35,25 @@ import ShippingPolicy from "./pages/ShippingPolicy";
 import PaymentPolicy from "./pages/PaymentPolicy";
 import FAQ from "./pages/FAQ";
 import AboutUs from "./pages/AboutUs";
+import AdminDashboard from "./pages/AdminDashboard";
+
+function AdminRoute({ children }) {
+  const { isAuthenticated, user, userLoading } = useAuth();
+
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (userLoading) {
+    return (
+      <main className="admin-route-loading" role="status">
+        Checking administrator access…
+      </main>
+    );
+  }
+  if (!user?.is_staff && !user?.is_superuser) {
+    return <Navigate to="/profile" replace />;
+  }
+
+  return children;
+}
 
 function ScrollToTop() {
   const { pathname, search } = useLocation();
@@ -87,6 +113,14 @@ function App() {
           <Route path="/payment" element={<Payment />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/edit" element={<ProfileEdit />} />
+          <Route
+            path="/admin-dashboard"
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            }
+          />
 
           {/* Customer Trust, Support & Policy Routes */}
           <Route path="/contact" element={<ContactUs />} />

@@ -1,11 +1,14 @@
 import re
 
 from django.db.models import Avg, Count, Prefetch, Q
+from django.db.models.deletion import ProtectedError
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Category, Product, ProductImage
 from rest_framework import generics
 from rest_framework.filters import SearchFilter
-from rest_framework.permissions import AllowAny, IsAdminUser
+from rest_framework.permissions import AllowAny
+from rest_framework.exceptions import ValidationError
+from core.permissions import IsAdminOrSuperuser
 
 from .serializers import CategorySerializer, ProductSerializer
 from .filters import ProductFilter
@@ -37,7 +40,7 @@ class CategoryListCreateView(generics.ListCreateAPIView):
         if self.request.method == "GET":
             return [AllowAny()]
 
-        return [IsAdminUser()]
+        return [IsAdminOrSuperuser()]
 
 
 class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -48,7 +51,15 @@ class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
         if self.request.method == "GET":
             return [AllowAny()]
 
-        return [IsAdminUser()]
+        return [IsAdminOrSuperuser()]
+
+    def perform_destroy(self, instance):
+        try:
+            instance.delete()
+        except ProtectedError as error:
+            raise ValidationError(
+                {"detail": "This category still contains products and cannot be deleted."}
+            ) from error
 
 
 class ProductListCreateView(generics.ListCreateAPIView):
@@ -126,7 +137,7 @@ class ProductListCreateView(generics.ListCreateAPIView):
         if self.request.method == "GET":
             return [AllowAny()]
 
-        return [IsAdminUser()]
+        return [IsAdminOrSuperuser()]
 
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -137,10 +148,10 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
         if self.request.method == "GET":
             return [AllowAny()]
 
-        return [IsAdminUser()]
+        return [IsAdminOrSuperuser()]
     
 class AdminProductListCreateView(generics.ListCreateAPIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperuser]
     queryset = Product.objects.select_related("category").all()
     serializer_class = ProductSerializer
 
@@ -154,6 +165,14 @@ class AdminProductListCreateView(generics.ListCreateAPIView):
 
 
 class AdminProductDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperuser]
     queryset = Product.objects.select_related("category").all()
     serializer_class = ProductSerializer
+
+    def perform_destroy(self, instance):
+        try:
+            instance.delete()
+        except ProtectedError as error:
+            raise ValidationError(
+                {"detail": "This product is part of an order and cannot be deleted."}
+            ) from error

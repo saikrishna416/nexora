@@ -9,6 +9,8 @@ from .views import (
     AdminOrderListView,
     AdminOrderDetailView,
     AdminOrderStatusUpdateView,
+    CustomerReturnExchangeRequestView,
+    AdminReturnRequestStatusView,
 )
 
 urlpatterns = [
@@ -37,7 +39,17 @@ urlpatterns = [
     CancelOrderView.as_view(),
     name="order-cancel"
     ),
+    path(
+    "<int:pk>/return-request/",
+    CustomerReturnExchangeRequestView.as_view(),
+    name="order-return-request",
+    ),
     path("admin/", AdminOrderListView.as_view(), name="admin-order-list"),
+    path(
+    "admin/<int:pk>/return-request/",
+    AdminReturnRequestStatusView.as_view(),
+    name="admin-return-request-status",
+    ),
     path(
     "admin/<int:pk>/status/",
     AdminOrderStatusUpdateView.as_view(),

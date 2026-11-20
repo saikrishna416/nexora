@@ -122,6 +122,9 @@ else:
         }
     }
 
+DATABASES["default"].setdefault("CONN_MAX_AGE", 600)
+DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
+
 print("Django database engine:", DATABASES["default"]["ENGINE"])
 
 

@@ -80,6 +80,13 @@ class ContactInquiryAdmin(admin.ModelAdmin):
             },
         ),
         (
+            "Customer Reply",
+            {
+                "fields": ("admin_reply",),
+                "description": "This reply is visible in the customer's public ticket tracker.",
+            },
+        ),
+        (
             "Audit & Security Metadata",
             {
                 "fields": (

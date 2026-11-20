@@ -1,4 +1,5 @@
 from decimal import Decimal
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
@@ -255,3 +256,63 @@ class BusinessPolicyConfigAPITests(TestCase):
         self.assertEqual(c2.pk, 1)
         self.assertEqual(BusinessPolicyConfig.objects.count(), 1)
         self.assertEqual(BusinessPolicyConfig.get_solo().support_email, "second@example.com")
+
+
+class AdminSupportAPITests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        user_model = get_user_model()
+        self.customer = user_model.objects.create_user(
+            username="customer",
+            email="customer@example.com",
+            password="customer-password-123",
+        )
+        self.admin = user_model.objects.create_user(
+            username="support-admin",
+            email="support-admin@example.com",
+            password="admin-password-123",
+            is_staff=True,
+        )
+        self.inquiry = ContactInquiry.objects.create(
+            name="Customer",
+            email="customer@example.com",
+            subject="Delivery question",
+            message="Please help with my order delivery.",
+        )
+
+    def test_admin_can_view_and_update_ticket_status(self):
+        self.client.force_authenticate(user=self.admin)
+        overview = self.client.get(reverse("admin-overview"))
+        self.assertEqual(overview.status_code, 200)
+        self.assertEqual(overview.data["open_support_tickets"], 1)
+
+        tickets = self.client.get(reverse("admin-contact-inquiry-list"))
+        self.assertEqual(tickets.status_code, 200)
+        self.assertEqual(
+            tickets.data["results"][0]["ticketId"],
+            self.inquiry.public_ticket_id,
+        )
+
+        updated = self.client.patch(
+            reverse("admin-contact-inquiry-detail", kwargs={"pk": self.inquiry.pk}),
+            {"status": "resolved", "admin_reply": "Your refund has been approved."},
+            format="json",
+        )
+        self.assertEqual(updated.status_code, 200)
+        self.assertEqual(updated.data["status"], "resolved")
+        self.assertEqual(updated.data["admin_reply"], "Your refund has been approved.")
+
+        public_status = self.client.get(
+            reverse("contact-inquiry-status"),
+            {"ticket_id": self.inquiry.public_ticket_id},
+        )
+        self.assertEqual(public_status.status_code, 200)
+        self.assertEqual(
+            public_status.data["tickets"][0]["admin_reply"],
+            "Your refund has been approved.",
+        )
+
+    def test_regular_customer_cannot_view_admin_tickets(self):
+        self.client.force_authenticate(user=self.customer)
+        response = self.client.get(reverse("admin-contact-inquiry-list"))
+        self.assertEqual(response.status_code, 403)

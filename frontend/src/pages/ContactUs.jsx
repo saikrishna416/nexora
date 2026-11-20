@@ -72,6 +72,7 @@ function mergeSupportTickets(store, tickets, fallbackEmail = "") {
       name: ticket.name || existing?.name || "",
       message: ticket.message || existing?.message || "",
       latestUpdate: ticket.latestUpdate || existing?.latestUpdate || "",
+      admin_reply: ticket.admin_reply ?? existing?.admin_reply ?? "",
     };
     nextStore[email] = [
       merged,
@@ -194,6 +195,12 @@ function SupportTicketCard({ ticket, onCopy, copied }) {
           </p>
           <strong>Latest support update</strong>
           <p>{status.update}</p>
+          {ticket.admin_reply && (
+            <>
+              <strong>Support reply</strong>
+              <p>{ticket.admin_reply}</p>
+            </>
+          )}
           {ticket.updatedAt && (
             <small className="nx-ticket-updated">
               Updated {formatSupportDate(ticket.updatedAt)}
@@ -329,6 +336,7 @@ export default function ContactUs() {
         latestUpdate:
           response.data?.latestUpdate ||
           "Your enquiry was received and is queued for review.",
+        admin_reply: response.data?.admin_reply || "",
         syncStatus: "synced",
       };
       if (!ticket.ticketId) {

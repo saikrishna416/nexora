@@ -1,15 +1,22 @@
 import re
 from datetime import datetime
 
+from django.contrib.auth import get_user_model
+from django.db.models import Sum
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.serializers import EmailField
 from rest_framework.views import APIView
 
+from orders.models import Order
+from products.models import Product
 from .models import BusinessPolicyConfig, ContactInquiry
+from .permissions import IsAdminOrSuperuser
 from .serializers import (
+    AdminContactInquirySerializer,
     ContactInquiryCreateSerializer,
     ContactInquiryStatusSerializer,
     PublicBusinessPolicyConfigSerializer,
@@ -129,6 +136,50 @@ class ContactInquiryStatusView(APIView):
             {"tickets": [ContactInquiryStatusSerializer(inquiry).data]},
             status=status.HTTP_200_OK,
         )
+
+
+class AdminOverviewView(APIView):
+    permission_classes = [IsAdminOrSuperuser]
+
+    def get(self, request, *args, **kwargs):
+        orders = Order.objects.only("return_request").iterator()
+        active_return_requests = sum(
+            1
+            for order in orders
+            if order.return_request
+            and order.return_request.get("status")
+            not in {"completed", "rejected"}
+        )
+        revenue = (
+            Order.objects.filter(payment_status="paid")
+            .aggregate(total=Sum("total_amount"))["total"]
+            or 0
+        )
+        return Response(
+            {
+                "total_orders": Order.objects.count(),
+                "revenue": str(revenue),
+                "product_count": Product.objects.count(),
+                "user_count": get_user_model().objects.count(),
+                "pending_returns_exchanges": active_return_requests,
+                "open_support_tickets": ContactInquiry.objects.filter(
+                    status__in=["new", "in_progress", "agent_assigned"]
+                ).count(),
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class AdminContactInquiryListView(generics.ListAPIView):
+    permission_classes = [IsAdminOrSuperuser]
+    serializer_class = AdminContactInquirySerializer
+    queryset = ContactInquiry.objects.all()
+
+
+class AdminContactInquiryDetailView(generics.RetrieveUpdateAPIView):
+    permission_classes = [IsAdminOrSuperuser]
+    serializer_class = AdminContactInquirySerializer
+    queryset = ContactInquiry.objects.all()
 
 
 class PublicBusinessPolicyConfigView(APIView):

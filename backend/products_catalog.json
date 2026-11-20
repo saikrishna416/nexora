@@ -1,0 +1,2627 @@
+[
+{
+  "model": "products.category",
+  "pk": 1,
+  "fields": {
+    "name": "Electronics",
+    "description": "Electronic devices and accessories",
+    "parent": null,
+    "created_at": "2026-10-07T11:49:17.402Z",
+    "updated_at": "2026-10-07T11:49:17.402Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 2,
+  "fields": {
+    "name": "Fashion",
+    "description": "Clothing, footwear and fashion products.",
+    "parent": null,
+    "created_at": "2026-10-08T11:11:16.849Z",
+    "updated_at": "2026-10-08T11:11:16.849Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 3,
+  "fields": {
+    "name": "Men",
+    "description": "Men's fashion products.",
+    "parent": 2,
+    "created_at": "2026-10-08T11:11:16.856Z",
+    "updated_at": "2026-10-08T11:11:16.856Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 4,
+  "fields": {
+    "name": "Women",
+    "description": "Women's fashion products.",
+    "parent": 2,
+    "created_at": "2026-10-08T11:11:16.863Z",
+    "updated_at": "2026-10-08T11:11:16.863Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 5,
+  "fields": {
+    "name": "Men Shirts",
+    "description": "Men's shirts and casual wear.",
+    "parent": 3,
+    "created_at": "2026-10-08T11:11:16.869Z",
+    "updated_at": "2026-10-08T11:11:16.869Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 6,
+  "fields": {
+    "name": "Men Pants",
+    "description": "Men's pants and trousers.",
+    "parent": 3,
+    "created_at": "2026-10-08T11:11:16.887Z",
+    "updated_at": "2026-10-08T11:11:16.887Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 7,
+  "fields": {
+    "name": "Men Shoes",
+    "description": "Men's footwear.",
+    "parent": 3,
+    "created_at": "2026-10-08T11:11:16.900Z",
+    "updated_at": "2026-10-08T11:11:16.900Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 8,
+  "fields": {
+    "name": "Women Tops",
+    "description": "Women's tops and shirts.",
+    "parent": 4,
+    "created_at": "2026-10-08T11:11:16.914Z",
+    "updated_at": "2026-10-08T11:11:16.914Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 9,
+  "fields": {
+    "name": "Women Pants",
+    "description": "Women's pants and trousers.",
+    "parent": 4,
+    "created_at": "2026-10-08T11:11:16.921Z",
+    "updated_at": "2026-10-08T11:11:16.921Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 10,
+  "fields": {
+    "name": "Women Shoes",
+    "description": "Women's footwear.",
+    "parent": 4,
+    "created_at": "2026-10-08T11:11:26.124Z",
+    "updated_at": "2026-10-08T11:11:26.124Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 12,
+  "fields": {
+    "name": "Appliances",
+    "description": "Home and personal appliances.",
+    "parent": null,
+    "created_at": "2026-10-08T11:12:05.338Z",
+    "updated_at": "2026-10-08T11:12:05.338Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 13,
+  "fields": {
+    "name": "Home & Living",
+    "description": "Furniture, decor and home products.",
+    "parent": null,
+    "created_at": "2026-10-08T11:12:05.345Z",
+    "updated_at": "2026-10-08T11:12:05.345Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 14,
+  "fields": {
+    "name": "Beauty",
+    "description": "Beauty and personal care products.",
+    "parent": null,
+    "created_at": "2026-10-08T11:12:05.353Z",
+    "updated_at": "2026-10-08T11:12:05.353Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 17,
+  "fields": {
+    "name": "Sports",
+    "description": "Sports, fitness and outdoor products.",
+    "parent": null,
+    "created_at": "2026-10-08T11:14:45.805Z",
+    "updated_at": "2026-10-08T11:14:45.805Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 20,
+  "fields": {
+    "name": "Top Wear",
+    "description": "Top Wear products",
+    "parent": 3,
+    "created_at": "2026-10-12T07:43:41.446Z",
+    "updated_at": "2026-10-12T07:43:41.446Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 21,
+  "fields": {
+    "name": "Shirts",
+    "description": "Shirts products",
+    "parent": 20,
+    "created_at": "2026-10-12T07:43:43.433Z",
+    "updated_at": "2026-10-12T07:43:43.433Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 22,
+  "fields": {
+    "name": "Casual Shirts",
+    "description": "Casual Shirts products",
+    "parent": 21,
+    "created_at": "2026-10-12T07:43:45.387Z",
+    "updated_at": "2026-10-12T07:43:45.387Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 23,
+  "fields": {
+    "name": "Formal Shirts",
+    "description": "Formal Shirts products",
+    "parent": 21,
+    "created_at": "2026-10-12T07:43:47.294Z",
+    "updated_at": "2026-10-12T07:43:47.294Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 24,
+  "fields": {
+    "name": "T-Shirts",
+    "description": "T-Shirts products",
+    "parent": 20,
+    "created_at": "2026-10-12T07:43:49.427Z",
+    "updated_at": "2026-10-12T07:43:49.427Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 25,
+  "fields": {
+    "name": "Men's Fashion",
+    "description": "Men's Fashion products",
+    "parent": null,
+    "created_at": "2026-10-12T09:04:05.437Z",
+    "updated_at": "2026-10-12T09:04:05.437Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 26,
+  "fields": {
+    "name": "Top Wear",
+    "description": "Top Wear products",
+    "parent": 25,
+    "created_at": "2026-10-12T09:04:05.445Z",
+    "updated_at": "2026-10-12T09:04:05.445Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 27,
+  "fields": {
+    "name": "Shirts",
+    "description": "Shirts products",
+    "parent": 25,
+    "created_at": "2026-10-12T09:04:05.449Z",
+    "updated_at": "2026-10-12T09:04:05.449Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 28,
+  "fields": {
+    "name": "Casual Shirts",
+    "description": "Casual Shirts products",
+    "parent": 25,
+    "created_at": "2026-10-12T09:04:05.455Z",
+    "updated_at": "2026-10-12T09:04:05.455Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 29,
+  "fields": {
+    "name": "Formal Shirts",
+    "description": "Formal Shirts products",
+    "parent": 25,
+    "created_at": "2026-10-12T09:04:05.459Z",
+    "updated_at": "2026-10-12T09:04:05.459Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 30,
+  "fields": {
+    "name": "T-Shirts",
+    "description": "T-Shirts products",
+    "parent": 25,
+    "created_at": "2026-10-12T09:04:05.462Z",
+    "updated_at": "2026-10-12T09:04:05.462Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 386,
+  "fields": {
+    "name": "Kids",
+    "description": "Fashion, clothing, and footwear for kids.",
+    "parent": null,
+    "created_at": "2026-10-13T06:27:26.862Z",
+    "updated_at": "2026-10-13T06:27:26.862Z"
+  }
+},
+{
+  "model": "products.category",
+  "pk": 387,
+  "fields": {
+    "name": "Mobiles",
+    "description": "Mobile phones and smartphones.",
+    "parent": null,
+    "created_at": "2026-10-13T06:31:02.841Z",
+    "updated_at": "2026-10-13T06:31:02.841Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 1,
+  "fields": {
+    "category": 1,
+    "name": "SONY WH-CH520 Wireless Headphones",
+    "description": "SONY WH-CH520 Wireless with 50 Hours Battery and Clear Calls Bluetooth Headset (Black, On the Ear)",
+    "price": "2499.00",
+    "stock": 22,
+    "image": "products/wh-ch510-sony-enriched-transparent-original-imagz5r5qqrsfteq.webp",
+    "is_active": true,
+    "created_at": "2026-10-07T11:50:11.755Z",
+    "updated_at": "2026-10-10T10:54:22.591Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 2,
+  "fields": {
+    "category": 1,
+    "name": "Ant Esports GM100 Wired Ergonomic Optical  Gaming Mouse",
+    "description": "Gaming Mouse with Upto 4800 DPI, 7 Buttons with DPI Switch, Multicolor LED Illumination, 1.5m Cable (USB 3.0, White)",
+    "price": "1499.00",
+    "stock": 20,
+    "image": "products/gm100-ant-esports-original-imahfxxsyggugvvg.webp",
+    "is_active": true,
+    "created_at": "2026-10-07T12:12:33.468Z",
+    "updated_at": "2026-10-10T10:55:50.456Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 4,
+  "fields": {
+    "category": 5,
+    "name": "Men Regular Fit Solid Spread Collar Casual Shirt",
+    "description": "Comfortable regular-fit cotton shirt suitable for casual and everyday wear.",
+    "price": "999.00",
+    "stock": 24,
+    "image": "products/l-sh-navyblue-a4-yameetindia-original-imahr7ha9xxtptcb.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:22:28.952Z",
+    "updated_at": "2026-10-13T08:39:11.335Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 5,
+  "fields": {
+    "category": 5,
+    "name": "Slim Fit Formal Shirt",
+    "description": "Smart slim-fit formal shirt designed for office and professional occasions.",
+    "price": "1299.00",
+    "stock": 20,
+    "image": "products/m-r-sky-blue-stoneberg-original-imahz3gqujnmunyf.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:22:28.963Z",
+    "updated_at": "2026-10-13T08:29:04.222Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 6,
+  "fields": {
+    "category": 6,
+    "name": "Masher Men Straight Fit Cream Linen Blend Trousers",
+    "description": "Comfortable casual pants with a modern regular fit.",
+    "price": "1499.00",
+    "stock": 18,
+    "image": "products/34-lintrk-crm-masher-original-imahpyf4rsb89yhh.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:22:28.970Z",
+    "updated_at": "2026-10-13T08:42:03.537Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 7,
+  "fields": {
+    "category": 6,
+    "name": "FUBAR Men Slim Fit Green Cotton Blend Trousers",
+    "description": "Versatile slim-fit chinos suitable for casual and semi-formal outfits.",
+    "price": "1699.00",
+    "stock": 15,
+    "image": "products/32-kctr-dmy-2121-olive-fubar-original-imahye44nzsbfxrr.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:22:28.980Z",
+    "updated_at": "2026-10-13T08:31:34.524Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 8,
+  "fields": {
+    "category": 7,
+    "name": "ADIDAS 50s Soule M Running Shoes For Men (Black , 10)",
+    "description": "Lightweight running shoes designed for everyday comfort and active lifestyles.",
+    "price": "1999.00",
+    "stock": 20,
+    "image": "products/-watermarked-original-imahnhfrhaggjng8.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:22:28.987Z",
+    "updated_at": "2026-10-13T08:50:49.189Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 9,
+  "fields": {
+    "category": 7,
+    "name": "PUMA Rungryp Sneakers For Men (White , 8)",
+    "description": "Stylish everyday sneakers with a comfortable sole.",
+    "price": "1799.00",
+    "stock": 22,
+    "image": "products/-original-imahrrjqjvhrv5hb.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:22:28.993Z",
+    "updated_at": "2026-10-13T08:45:52.353Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 10,
+  "fields": {
+    "category": 8,
+    "name": "Casual Puff Sleeves Floral Print Women Pink Top",
+    "description": "Comfortable and stylish casual top for everyday wear.",
+    "price": "899.00",
+    "stock": 25,
+    "image": "products/s-1-d988-topss-deklook-original-imahnyhsmncbymyw.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:22:29.003Z",
+    "updated_at": "2026-10-13T08:59:12.447Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 11,
+  "fields": {
+    "category": 8,
+    "name": "Casual Regular Sleeves Printed Women Multicolor Top",
+    "description": "Trendy printed top designed for casual outings and everyday fashion.",
+    "price": "1099.00",
+    "stock": 18,
+    "image": "products/s-1-jm477-blue-s-jaipur-morni-original-imahmqh6vmernag9.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:22:29.012Z",
+    "updated_at": "2026-10-13T08:55:29.890Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 12,
+  "fields": {
+    "category": 9,
+    "name": "H&H Women Wide Leg High Rise Blue Jeans",
+    "description": "Comfortable Wide Leg High Rise Blue Jeans suitable for everyday styling.",
+    "price": "1399.00",
+    "stock": 20,
+    "image": "products/32-mt-hh-8037-spring-blue-32-h-h-original-imahhnbweknuvzgf.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:22:29.020Z",
+    "updated_at": "2026-10-13T09:04:46.512Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 13,
+  "fields": {
+    "category": 9,
+    "name": "Women Straight Fit Brown Cotton Blend Trousers",
+    "description": "Modern wide-leg pants with a relaxed and fashionable fit.",
+    "price": "1599.00",
+    "stock": 16,
+    "image": "products/l-pen-0-fuback-original-imahqabezrpgpspx.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:22:29.026Z",
+    "updated_at": "2026-10-13T09:01:34.559Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 14,
+  "fields": {
+    "category": 10,
+    "name": "Doctor Health Super Soft Casuals For Women (Pink , 6)",
+    "description": "Comfortable sneakers designed for everyday use.",
+    "price": "1798.80",
+    "stock": 19,
+    "image": "products/5-260-kitty-onion-5-0-doctor-health-super-soft-onion-original-imahrp8zfbbgtvd6.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:22:29.034Z",
+    "updated_at": "2026-10-13T09:11:50.585Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 15,
+  "fields": {
+    "category": 10,
+    "name": "asian Mercury-11 Mint Sports,Gym,Walking,Training,Stylish Running Shoes For Women (Pink , 5)",
+    "description": "Lightweight sports shoes designed for walking, running and workouts.",
+    "price": "2199.00",
+    "stock": 14,
+    "image": "products/-watermarked-original-imagz5kyh95rcyug.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:22:30.507Z",
+    "updated_at": "2026-10-13T09:07:57.180Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 16,
+  "fields": {
+    "category": 1,
+    "name": "Apple iPhone 17 Pro",
+    "description": "Apple iPhone 17 Pro (Cosmic Orange, 256 GB)256 GB ROM \r\nA19 Chip, 6 Core Processor | Hexa Core | 4.26 GHz Clock Speed\r\nSuperfast Multitasking. Extensive Gaming\r\n48MP + 48MP + 48MP Rear Camera",
+    "price": "140000.00",
+    "stock": 13,
+    "image": "products/-resized-original-imahft5nxmyqndhf.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:23:27.629Z",
+    "updated_at": "2026-10-10T10:57:02.505Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 17,
+  "fields": {
+    "category": 1,
+    "name": "Samsung Galaxy Book4",
+    "description": "Samsung Galaxy Book4 Metal Intel Core i5 13th Gen 1335U - (16 GB/512 GB SSD/Windows 11 Home) NP750XGJ Thin and Light Laptop (15.6 Inch, Gray, 1.55 Kg, With MS Office)",
+    "price": "54999.00",
+    "stock": 25,
+    "image": "products/-enriched-original-COMGZUYDGFJGHZR4_0.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:23:27.638Z",
+    "updated_at": "2026-10-10T10:38:44.440Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 18,
+  "fields": {
+    "category": 1,
+    "name": "JBL Wireless Bluetooth Speaker",
+    "description": "JBL Go Essential with Rich Bass, 5 Hrs Playtime, IPX7 Waterproof, Ultra Portable 3.1 W Bluetooth Speaker (Black, Mono Channel)",
+    "price": "2499.00",
+    "stock": 24,
+    "image": "products/-enriched-transparent-original-imagdhhg2f7zjbt7.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:23:27.649Z",
+    "updated_at": "2026-10-10T10:25:58.721Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 19,
+  "fields": {
+    "category": 1,
+    "name": "boAt Lunar Discovery Neo Smart Watch",
+    "description": "boAt Lunar Discovery Neo 1.39\" HD Display, Metallic Finish, BT Calling, Smart Watch Smartwatch (Steel Black Strap, Free Size)",
+    "price": "3999.00",
+    "stock": 19,
+    "image": "products/-original-imahg6xxrpyqw4ez.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:23:27.657Z",
+    "updated_at": "2026-10-10T10:34:05.053Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 20,
+  "fields": {
+    "category": 1,
+    "name": "Portronics Mechanical Gaming Keyboard",
+    "description": "RGB mechanical keyboard designed for gaming and comfortable long-term typing.",
+    "price": "2999.00",
+    "stock": 18,
+    "image": "products/fgbn.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:23:29.304Z",
+    "updated_at": "2026-10-10T10:31:05.158Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 21,
+  "fields": {
+    "category": 12,
+    "name": "SONY BRAVIA 2 Smart Google TV",
+    "description": "SONY BRAVIA 2 II 189.3 cm (75 inch) Ultra HD (4K) LED Smart Google TV (K-75S25BM2)",
+    "price": "145000.00",
+    "stock": 11,
+    "image": "products/-resized-original-imahggetxjeguqga.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:24:11.756Z",
+    "updated_at": "2026-10-10T11:17:47.530Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 22,
+  "fields": {
+    "category": 12,
+    "name": "Haier 602 L Frost Free Refrigerator",
+    "description": "Haier 602 L Frost Free Side by Side Convertible Refrigerator  with Expert Inverter 2-Door ,3 Star, (Magic Convertible, Deo Fresh Technology,2026 Model) (Black Steel, HRS-682KS)",
+    "price": "60000.00",
+    "stock": 15,
+    "image": "products/-original-imahruvvrzftbazz.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:24:11.768Z",
+    "updated_at": "2026-10-10T11:08:47.138Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 23,
+  "fields": {
+    "category": 12,
+    "name": "Electric Kettle 1.5L",
+    "description": "Fast-boiling electric kettle with a 1.5-liter capacity.",
+    "price": "1499.00",
+    "stock": 20,
+    "image": "products/-original-imahqf5s4ehh79vg.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:24:11.778Z",
+    "updated_at": "2026-10-10T11:09:48.956Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 24,
+  "fields": {
+    "category": 12,
+    "name": "Digital Microwave Oven",
+    "description": "Multi-function microwave oven for heating and preparing everyday meals.",
+    "price": "8999.00",
+    "stock": 7,
+    "image": "products/-resized-original-imahcauf4qqxesbd.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:24:12.665Z",
+    "updated_at": "2026-10-10T11:12:21.654Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 25,
+  "fields": {
+    "category": 13,
+    "name": "Modern Study Table",
+    "description": "Multipurpose Study Table with Bookshelf (MST-001) Engineered Wood Study Table (Free Standing, Finish Color - Black & Black, DIY(Do-It-Yourself))",
+    "price": "2999.00",
+    "stock": 10,
+    "image": "products/100-0-plywood-engineered-wood-engineered-wood-computer-desk-with-original-imah_2isFGl5.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:24:51.140Z",
+    "updated_at": "2026-10-13T07:57:27.697Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 26,
+  "fields": {
+    "category": 13,
+    "name": "Perfect Homes Sauron Leatherette Manual Recliner (Finish Color - Tan, DIY(Do-It-Yourself))",
+    "description": "Comfortable Perfect Homes Sauron Leatherette Manual Recliner \r\ndesigned for relaxing .",
+    "price": "7499.00",
+    "stock": 8,
+    "image": "products/-original-imahh5kaxqcfujeq.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:24:51.153Z",
+    "updated_at": "2026-10-13T07:52:50.518Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 27,
+  "fields": {
+    "category": 13,
+    "name": "Trust Ware White LED Table Lamp – 3 Brightness Modes, Touch Control, Rechargeable Study Lamp (36 cm, White)",
+    "description": "Modern LED table lamp with adjustable brightness for study and work.",
+    "price": "599.00",
+    "stock": 20,
+    "image": "products/white-led-table-lamp-3-brightness-modes-touch-control-original-imahzvhpkhsef8ep.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:24:54.001Z",
+    "updated_at": "2026-10-13T07:48:40.524Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 28,
+  "fields": {
+    "category": 14,
+    "name": "Mamaearth Vitamin C Oil-Free Moisturizer for Skin Illumination For Face with & Gotu Kola (80 g)",
+    "description": "Lightweight daily moisturizer designed to keep skin hydrated and soft.",
+    "price": "699.00",
+    "stock": 25,
+    "image": "products/80-vitamin-c-oil-free-moisturizer-for-skin-illumination-for-face-original-imah_JaIrNHa.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:25:34.224Z",
+    "updated_at": "2026-10-13T08:09:55.512Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 29,
+  "fields": {
+    "category": 14,
+    "name": "Mamaearth Daily Glow Face Serum With Vitamin C & Turmeric for Radiant Skin (30 ml)",
+    "description": "Lightweight vitamin C serum for a simple daily skincare routine.",
+    "price": "499.00",
+    "stock": 20,
+    "image": "products/30-0-daily-glow-face-serum-with-vitamin-c-turmeric-for-radiant-original-imahd5_7wnXCbD.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:25:34.237Z",
+    "updated_at": "2026-10-13T08:05:43.802Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 30,
+  "fields": {
+    "category": 14,
+    "name": "Pilgrim Spanish Rosemary Anti Hairfall Shampoo for Women & Men | Promotes Hair Growth (200 ml)",
+    "description": "Gentle everyday shampoo designed for clean and healthy-looking hair.",
+    "price": "599.00",
+    "stock": 30,
+    "image": "products/-original-imahraugenhhugag.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:25:35.147Z",
+    "updated_at": "2026-10-13T08:01:59.899Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 31,
+  "fields": {
+    "category": 17,
+    "name": "Fastway Bicycle HOPPER JETPRO N/IBC 24T S/GREEN, WITH 90% ASSEMBLED 24 T (inch) Road Cycle (Single Speed, Multicolor, Rigid)",
+    "description": "Introducing the HOPPER JETPRO 24T Kids Cycle - Where Fun Meets Adventure! Are you ready to take your biking game to the next level? Look no further than the HOPPER JETPRO 24T, the perfect choice for young riders aged 8-12 years, with a height range of 130cm to 150cm.",
+    "price": "5999.00",
+    "stock": 25,
+    "image": "products/hopper-jetpro-n-ibc-24t-s-green-with-90-assembled-24-16-5-original-imah92geyzprufyh.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:26:09.128Z",
+    "updated_at": "2026-10-13T08:19:28.409Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 32,
+  "fields": {
+    "category": 17,
+    "name": "Maxpro PTA450M 6HP PEAK BLDC Motor, 18 km/h Speed 16 Level Auto Incline multifunctional Treadmill",
+    "description": "The Maxpro PTA450PLUS Treadmill is designed to deliver a powerful and efficient workout experience at home, featuring a 6HP peak brushless BLDC motor that ensures smooth performance, reduced noise, and long-lasting durability. With a speed range of 1 to 18 km/h, it is suitable for walking, jogging, and high-intensity running, while the 16-level automatic incline helps enhance calorie burn, improve endurance, and target multiple muscle groups.",
+    "price": "30000.00",
+    "stock": 12,
+    "image": "products/pta450m-6hp-peak-bldc-motor-18-km-h-speed-16-level-auto-incline-original-imahm_LIq6Ypm.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:26:09.139Z",
+    "updated_at": "2026-10-13T08:24:18.440Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 33,
+  "fields": {
+    "category": 17,
+    "name": "NIVIA Storm Football - Size: 5 (Standard, Pack of 1, White)",
+    "description": "Durable football suitable for recreational games and outdoor practice.",
+    "price": "999.00",
+    "stock": 20,
+    "image": "products/5-storm-football-size-5-68-1-football-nivia-enriched-transparent-original-imah_7ySJHum.webp",
+    "is_active": true,
+    "created_at": "2026-10-08T11:26:10.393Z",
+    "updated_at": "2026-10-13T08:13:24.840Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 770,
+  "fields": {
+    "category": 386,
+    "name": "Boys & Girls Casual T-shirt Shorts (Navy Blue, Pack of 2)",
+    "description": "Comfortable cotton t-shirt and shorts set for everyday wear. Suitable for kids aged 3–8 years.",
+    "price": "499.00",
+    "stock": 20,
+    "image": "products/6-9-months-m-gic-navy-sardartextile-original-imahr8mfep99xhhf.webp",
+    "is_active": true,
+    "created_at": "2026-10-13T06:27:26.909Z",
+    "updated_at": "2026-10-13T07:42:31.437Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 771,
+  "fields": {
+    "category": 386,
+    "name": "Aaraf Creation Girls Midi/Knee Length Party Dress (Pink, Fashion Sleeve)",
+    "description": "A lightweight floral summer dress for casual outings and special occasions.",
+    "price": "799.00",
+    "stock": 15,
+    "image": "products/3-4-years-arman-pleated-aaraf-creation-original-imahr7wbfbgkxgqb.webp",
+    "is_active": true,
+    "created_at": "2026-10-13T06:27:26.921Z",
+    "updated_at": "2026-10-13T07:12:37.887Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 772,
+  "fields": {
+    "category": 386,
+    "name": "Ayra Boys & Girls Casual Sweatshirt Sweatpant (Red, Pack of 1)",
+    "description": "Ayra Boys & Girls Casual Sweatshirt Sweatpant (Red, Pack of 1)",
+    "price": "999.00",
+    "stock": 12,
+    "image": "products/3-4-years-ayzal-56-hood-set-red-ayra-original-imahnrczezaztxwa.webp",
+    "is_active": true,
+    "created_at": "2026-10-13T06:27:26.925Z",
+    "updated_at": "2026-10-13T07:09:24.473Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 773,
+  "fields": {
+    "category": 386,
+    "name": "FEETWELL Velcro Sneakers For Boys & Girls (Multicolor, 3.5-4 Years)",
+    "description": "Subtype\r\nSneakers\r\nClosure Type\r\nVelcro",
+    "price": "899.00",
+    "stock": 18,
+    "image": "products/9c-sl211-pink-28-feetwell-original-imahqy6ghawtybxg.webp",
+    "is_active": true,
+    "created_at": "2026-10-13T06:27:26.930Z",
+    "updated_at": "2026-10-13T07:05:42.926Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 774,
+  "fields": {
+    "category": 387,
+    "name": "Apple iPhone 18 Pro (Burgundy, 256 GB)",
+    "description": "256 GB ROM \r\nA20 Pro chip, 6 Core Processor | Hexa Core\r\n48MP + 48MP + 48MP Rear Camera\r\n18MP Front Camera\r\n6.3 inch",
+    "price": "164000.00",
+    "stock": 9,
+    "image": "products/-original-imahraz4kxuz4rgu.webp",
+    "is_active": true,
+    "created_at": "2026-10-13T06:31:02.891Z",
+    "updated_at": "2026-10-13T07:00:44.876Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 775,
+  "fields": {
+    "category": 387,
+    "name": "Samsung Galaxy S26 5G (Black, 512 GB) (12 GB RAM)",
+    "description": "Samsung Android smartphone with 512 GB storage.",
+    "price": "107999.00",
+    "stock": 10,
+    "image": "products/-original-imahhyzhxwsdmcgq.webp",
+    "is_active": true,
+    "created_at": "2026-10-13T06:31:02.896Z",
+    "updated_at": "2026-10-13T06:56:24.177Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 776,
+  "fields": {
+    "category": 387,
+    "name": "Google Pixel 11 (Frost, 256 GB) (12 GB RAM)",
+    "description": "Google Android smartphone with 256 GB storage.",
+    "price": "89999.00",
+    "stock": 8,
+    "image": "products/-resized-original-imahqsze6vgzez9e.webp",
+    "is_active": true,
+    "created_at": "2026-10-13T06:31:02.906Z",
+    "updated_at": "2026-10-13T06:53:50.360Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 777,
+  "fields": {
+    "category": 387,
+    "name": "OnePlus 15 5G (Infinite Black, 512 GB) (16 GB RAM)",
+    "description": "OnePlus Android smartphone with 512GB storage.",
+    "price": "79999.00",
+    "stock": 10,
+    "image": "products/-resized-original-imahgt9jzkgmspyz.webp",
+    "is_active": true,
+    "created_at": "2026-10-13T06:31:02.915Z",
+    "updated_at": "2026-10-13T06:50:05.562Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 778,
+  "fields": {
+    "category": 387,
+    "name": "Nothing Phone (4a) (Black, 128 GB) (6 GB RAM)",
+    "description": "Nothing Android smartphone with 128 GB storage.",
+    "price": "35999.00",
+    "stock": 11,
+    "image": "products/-original-imahzaxejjzhkxy8.webp",
+    "is_active": true,
+    "created_at": "2026-10-13T06:31:02.923Z",
+    "updated_at": "2026-10-13T06:45:31.672Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 779,
+  "fields": {
+    "category": 387,
+    "name": "REDMI Note 14 5G (Ivy Green, 128 GB) (8 GB RAM)",
+    "description": "Redmi Android smartphone with 128 GB storage.",
+    "price": "17999.00",
+    "stock": 15,
+    "image": "products/note-14-5g-24094rad4i-mzb0icqin-redmi-resized-original-imah9gtuwqmwzxwm.webp",
+    "is_active": true,
+    "created_at": "2026-10-13T06:31:02.932Z",
+    "updated_at": "2026-10-13T06:40:27.356Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 780,
+  "fields": {
+    "category": 12,
+    "name": "Haier 2026 Model 1.5 Ton 3 Star Split HEXA Inverter with Wi-fi AC (HSI19KHD-BZAI3NB-I,HSO19-3NB-I, Black, White)",
+    "description": "1.5 ton split inverter air conditioner for home cooling. Check the manufacturer's specifications before purchase.",
+    "price": "45999.00",
+    "stock": 10,
+    "image": "products/-original-imahsydrxczqcnac.webp",
+    "is_active": true,
+    "created_at": "2026-10-13T09:20:45.918Z",
+    "updated_at": "2026-10-13T09:26:35.409Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 781,
+  "fields": {
+    "category": 12,
+    "name": "Samsung 9 kg 5 Star, AI Ecobubble, Super Speed, Wi-Fi, Hygiene Steam, Digital Inverter Motor Fully Automatic Front Load with In-built Heater Grey (WW90DG5U24AXTL)",
+    "description": "9 kg fully automatic front-load washing machine for everyday household laundry.",
+    "price": "35999.00",
+    "stock": 9,
+    "image": "products/-original-imahprhhh4hay5jj.webp",
+    "is_active": true,
+    "created_at": "2026-10-13T09:20:45.925Z",
+    "updated_at": "2026-10-13T09:34:27.387Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 782,
+  "fields": {
+    "category": 25,
+    "name": "Men Solid Round Neck Cotton Blend Maroon T-Shirt",
+    "description": "Men's classic crew-neck cotton T-shirt with a comfortable over sized.",
+    "price": "599.00",
+    "stock": 20,
+    "image": "products/xxl-men-mrn-ost-plain-theja-shree-tex-original-imahrkzujt7dpzvu.webp",
+    "is_active": true,
+    "created_at": "2026-10-13T09:34:47.812Z",
+    "updated_at": "2026-10-13T09:45:49.998Z"
+  }
+},
+{
+  "model": "products.product",
+  "pk": 783,
+  "fields": {
+    "category": 25,
+    "name": "PUMA ESS Logo M Men Solid Polo Neck Pure Cotton White T-Shirt",
+    "description": "Men's white polo casual T-shirt, suitable for everyday wear.",
+    "price": "699.00",
+    "stock": 20,
+    "image": "products/-original-imahqfr8bchznhpf.webp",
+    "is_active": true,
+    "created_at": "2026-10-13T09:34:47.820Z",
+    "updated_at": "2026-10-24T11:35:40.976Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 1,
+  "fields": {
+    "product": 2,
+    "image": "products/gallery/gm100-ant-esports-original-imahfxxsqtqzf7ga.webp",
+    "created_at": "2026-10-09T10:18:35.404Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 2,
+  "fields": {
+    "product": 17,
+    "image": "products/gallery/-original-imahzcakenyvmk9j.webp",
+    "created_at": "2026-10-09T10:22:25.017Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 3,
+  "fields": {
+    "product": 17,
+    "image": "products/gallery/-original-imahzcay3mep6zgg.webp",
+    "created_at": "2026-10-09T10:22:25.035Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 4,
+  "fields": {
+    "product": 17,
+    "image": "products/gallery/-original-imahzcay3qtqqgdf.webp",
+    "created_at": "2026-10-09T10:22:25.047Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 5,
+  "fields": {
+    "product": 1,
+    "image": "products/gallery/wh-ch510-sony-original-imagz5r5j2uxpu9d.webp",
+    "created_at": "2026-10-09T10:24:22.782Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 6,
+  "fields": {
+    "product": 1,
+    "image": "products/gallery/wh-ch510-sony-original-imagz5r5rftzm46h.webp",
+    "created_at": "2026-10-09T10:24:22.786Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 7,
+  "fields": {
+    "product": 1,
+    "image": "products/gallery/wh-ch510-sony-original-imagz5r5nphjyzka.webp",
+    "created_at": "2026-10-09T10:37:12.561Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 8,
+  "fields": {
+    "product": 14,
+    "image": "products/gallery/6-260-kitty-onion-6-0-doctor-health-super-soft-onion-original-imahrp8zmacwzvbq.webp",
+    "created_at": "2026-10-10T10:14:14.384Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 9,
+  "fields": {
+    "product": 14,
+    "image": "products/gallery/6-260-kitty-onion-6-0-doctor-health-super-soft-onion-original-imahrp8znhduehjr.webp",
+    "created_at": "2026-10-10T10:14:14.397Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 10,
+  "fields": {
+    "product": 14,
+    "image": "products/gallery/7-260-kitty-onion-7-0-doctor-health-super-soft-onion-original-imahrp8zhxftzbd9.webp",
+    "created_at": "2026-10-10T10:14:14.400Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 11,
+  "fields": {
+    "product": 18,
+    "image": "products/gallery/-original-imagemxtvrf3ba3p.webp",
+    "created_at": "2026-10-10T10:25:58.735Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 12,
+  "fields": {
+    "product": 18,
+    "image": "products/gallery/-original-imagemxtvvvhf8hc.webp",
+    "created_at": "2026-10-10T10:25:58.745Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 13,
+  "fields": {
+    "product": 18,
+    "image": "products/gallery/-original-imagemxtdxkyfvhx.webp",
+    "created_at": "2026-10-10T10:25:58.751Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 14,
+  "fields": {
+    "product": 18,
+    "image": "products/gallery/-original-imagemxtzgfgkshj.webp",
+    "created_at": "2026-10-10T10:25:58.760Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 15,
+  "fields": {
+    "product": 18,
+    "image": "products/gallery/-original-imahfcgwza6fty8w.webp",
+    "created_at": "2026-10-10T10:25:58.768Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 16,
+  "fields": {
+    "product": 20,
+    "image": "products/gallery/vbn.webp",
+    "created_at": "2026-10-10T10:31:05.172Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 17,
+  "fields": {
+    "product": 20,
+    "image": "products/gallery/hydra-10-bluetooth-2-4-ghz-rechargeable-mechanical-red-switches-origin_ga6gGPY.webp",
+    "created_at": "2026-10-10T10:31:05.181Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 18,
+  "fields": {
+    "product": 20,
+    "image": "products/gallery/hydra-10-bluetooth-2-4-ghz-rechargeable-mechanical-red-switches-origin_y1uFZdc.webp",
+    "created_at": "2026-10-10T10:31:05.189Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 19,
+  "fields": {
+    "product": 19,
+    "image": "products/gallery/-original-imahg6xxgueg9mgt.webp",
+    "created_at": "2026-10-10T10:34:05.073Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 20,
+  "fields": {
+    "product": 19,
+    "image": "products/gallery/-original-imahg6xxpapmyhzc.webp",
+    "created_at": "2026-10-10T10:34:05.082Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 21,
+  "fields": {
+    "product": 19,
+    "image": "products/gallery/-original-imahg6xxq9rdz9x4.webp",
+    "created_at": "2026-10-10T10:34:05.090Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 22,
+  "fields": {
+    "product": 17,
+    "image": "products/gallery/-original-imahzcayhs4nudzj.webp",
+    "created_at": "2026-10-10T10:38:44.463Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 23,
+  "fields": {
+    "product": 17,
+    "image": "products/gallery/-original-imahzcayspmg8grg.webp",
+    "created_at": "2026-10-10T10:38:44.469Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 24,
+  "fields": {
+    "product": 17,
+    "image": "products/gallery/-original-imahzcaygftxuryj.webp",
+    "created_at": "2026-10-10T10:38:44.475Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 25,
+  "fields": {
+    "product": 16,
+    "image": "products/gallery/-original-imahft5nzymbfwfh.webp",
+    "created_at": "2026-10-10T10:43:01.376Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 26,
+  "fields": {
+    "product": 16,
+    "image": "products/gallery/-original-imahft5nzadqmyzz.webp",
+    "created_at": "2026-10-10T10:43:01.388Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 27,
+  "fields": {
+    "product": 16,
+    "image": "products/gallery/-original-imahft5njwbfyz5u.webp",
+    "created_at": "2026-10-10T10:43:01.398Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 28,
+  "fields": {
+    "product": 16,
+    "image": "products/gallery/-original-imahft5n2dzw3rym.webp",
+    "created_at": "2026-10-10T10:43:01.403Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 29,
+  "fields": {
+    "product": 2,
+    "image": "products/gallery/gm100-gamingcomputer-original-imahjw5emqywunk8.webp",
+    "created_at": "2026-10-10T10:50:32.685Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 30,
+  "fields": {
+    "product": 2,
+    "image": "products/gallery/gm100-gamingcomputer-original-imahjw5ecngamhqf.webp",
+    "created_at": "2026-10-10T10:50:32.692Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 31,
+  "fields": {
+    "product": 2,
+    "image": "products/gallery/-original-imahhdh9txrdyzb9.webp",
+    "created_at": "2026-10-10T10:50:32.697Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 32,
+  "fields": {
+    "product": 2,
+    "image": "products/gallery/-original-imahhdkvwgz6ddrz.webp",
+    "created_at": "2026-10-10T10:50:32.702Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 33,
+  "fields": {
+    "product": 22,
+    "image": "products/gallery/-original-imahqfzmwgj632yb.webp",
+    "created_at": "2026-10-10T11:08:47.183Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 34,
+  "fields": {
+    "product": 22,
+    "image": "products/gallery/-original-imahqfzmkmyzgmgv.webp",
+    "created_at": "2026-10-10T11:08:47.194Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 35,
+  "fields": {
+    "product": 22,
+    "image": "products/gallery/-original-imahqfzmhfm33ggw.webp",
+    "created_at": "2026-10-10T11:08:47.199Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 36,
+  "fields": {
+    "product": 22,
+    "image": "products/gallery/-original-imahqfzmez6jdzjh.webp",
+    "created_at": "2026-10-10T11:08:47.204Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 37,
+  "fields": {
+    "product": 22,
+    "image": "products/gallery/-original-imahqfzmfgjc866g.webp",
+    "created_at": "2026-10-10T11:08:47.211Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 38,
+  "fields": {
+    "product": 23,
+    "image": "products/gallery/-original-imahqf5ptyhqcumh.webp",
+    "created_at": "2026-10-10T11:09:48.964Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 39,
+  "fields": {
+    "product": 23,
+    "image": "products/gallery/-original-imahqf5qyexxzwjd.webp",
+    "created_at": "2026-10-10T11:09:48.971Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 40,
+  "fields": {
+    "product": 23,
+    "image": "products/gallery/-original-imahqf5pzrhefghb.webp",
+    "created_at": "2026-10-10T11:09:48.977Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 41,
+  "fields": {
+    "product": 23,
+    "image": "products/gallery/-original-imahqf64yjgasku6.webp",
+    "created_at": "2026-10-10T11:09:48.982Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 42,
+  "fields": {
+    "product": 24,
+    "image": "products/gallery/-original-imahcaufpf4tk9hj.webp",
+    "created_at": "2026-10-10T11:12:21.663Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 43,
+  "fields": {
+    "product": 24,
+    "image": "products/gallery/-original-imahcaufztagtnch.webp",
+    "created_at": "2026-10-10T11:12:21.668Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 44,
+  "fields": {
+    "product": 24,
+    "image": "products/gallery/-original-imahcaufysrvnxvd.webp",
+    "created_at": "2026-10-10T11:12:21.674Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 45,
+  "fields": {
+    "product": 24,
+    "image": "products/gallery/-original-imahcaufnrtahugz.webp",
+    "created_at": "2026-10-10T11:12:21.680Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 46,
+  "fields": {
+    "product": 24,
+    "image": "products/gallery/-original-imahcaufhvwn96ym.webp",
+    "created_at": "2026-10-10T11:12:21.687Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 47,
+  "fields": {
+    "product": 21,
+    "image": "products/gallery/-original-imahgget3gedz3fg.webp",
+    "created_at": "2026-10-10T11:17:47.541Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 48,
+  "fields": {
+    "product": 21,
+    "image": "products/gallery/-original-imahgget8djthcgn.webp",
+    "created_at": "2026-10-10T11:17:47.549Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 49,
+  "fields": {
+    "product": 21,
+    "image": "products/gallery/-original-imahggetgfjhqxg3.webp",
+    "created_at": "2026-10-10T11:17:47.553Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 50,
+  "fields": {
+    "product": 21,
+    "image": "products/gallery/-original-imahggetpavv6muw.webp",
+    "created_at": "2026-10-10T11:17:47.559Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 51,
+  "fields": {
+    "product": 779,
+    "image": "products/gallery/note-14-5g-24094rad4i-mzb0icqin-redmi-original-imah9gtuwzmphbhr.webp",
+    "created_at": "2026-10-13T06:40:27.367Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 52,
+  "fields": {
+    "product": 779,
+    "image": "products/gallery/note-14-5g-24094rad4i-mzb0icqin-redmi-original-imah9gtumz4hprwx.webp",
+    "created_at": "2026-10-13T06:40:27.370Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 53,
+  "fields": {
+    "product": 779,
+    "image": "products/gallery/note-14-5g-24094rad4i-mzb0icqin-redmi-original-imah9gtump3hfqae.webp",
+    "created_at": "2026-10-13T06:40:27.373Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 54,
+  "fields": {
+    "product": 779,
+    "image": "products/gallery/note-14-5g-24094rad4i-mzb0icqin-redmi-original-imah9gtuhhamuv6u.webp",
+    "created_at": "2026-10-13T06:40:27.376Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 55,
+  "fields": {
+    "product": 778,
+    "image": "products/gallery/-original-imahzaxed83gu8n5.webp",
+    "created_at": "2026-10-13T06:45:31.685Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 56,
+  "fields": {
+    "product": 778,
+    "image": "products/gallery/-original-imahzaxeeuwxwnps.webp",
+    "created_at": "2026-10-13T06:45:31.690Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 57,
+  "fields": {
+    "product": 778,
+    "image": "products/gallery/-original-imahzaxenaheb58y.webp",
+    "created_at": "2026-10-13T06:45:31.694Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 58,
+  "fields": {
+    "product": 778,
+    "image": "products/gallery/-original-imahzaxevgxe6ebc.webp",
+    "created_at": "2026-10-13T06:45:31.699Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 59,
+  "fields": {
+    "product": 778,
+    "image": "products/gallery/-original-imahzaxep66xg8gu.webp",
+    "created_at": "2026-10-13T06:45:31.702Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 60,
+  "fields": {
+    "product": 777,
+    "image": "products/gallery/-original-imahgt9jxhstugk5.webp",
+    "created_at": "2026-10-13T06:50:05.576Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 61,
+  "fields": {
+    "product": 777,
+    "image": "products/gallery/-original-imahgt9jdcgj94ft.webp",
+    "created_at": "2026-10-13T06:50:05.582Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 62,
+  "fields": {
+    "product": 777,
+    "image": "products/gallery/-original-imahgt9jszvresfa.webp",
+    "created_at": "2026-10-13T06:50:05.589Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 63,
+  "fields": {
+    "product": 777,
+    "image": "products/gallery/-original-imahgt9jjjmtgdrf.webp",
+    "created_at": "2026-10-13T06:50:05.594Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 64,
+  "fields": {
+    "product": 777,
+    "image": "products/gallery/-original-imahgt9jzcqgc7tw.webp",
+    "created_at": "2026-10-13T06:50:05.600Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 65,
+  "fields": {
+    "product": 776,
+    "image": "products/gallery/-original-imahqszeyffayjys.webp",
+    "created_at": "2026-10-13T06:53:50.370Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 66,
+  "fields": {
+    "product": 776,
+    "image": "products/gallery/-original-imahqszeykrshtk8.webp",
+    "created_at": "2026-10-13T06:53:50.379Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 67,
+  "fields": {
+    "product": 776,
+    "image": "products/gallery/-original-imahqszevcafnvah.webp",
+    "created_at": "2026-10-13T06:53:50.386Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 68,
+  "fields": {
+    "product": 776,
+    "image": "products/gallery/-original-imahqszevjmjehud.webp",
+    "created_at": "2026-10-13T06:53:50.392Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 69,
+  "fields": {
+    "product": 775,
+    "image": "products/gallery/-original-imahnmn6uf66uh9x.webp",
+    "created_at": "2026-10-13T06:56:24.190Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 70,
+  "fields": {
+    "product": 775,
+    "image": "products/gallery/-original-imahhyzhqdzy3udx.webp",
+    "created_at": "2026-10-13T06:56:24.196Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 71,
+  "fields": {
+    "product": 775,
+    "image": "products/gallery/-original-imahhyzhkz6nh5k8.webp",
+    "created_at": "2026-10-13T06:56:24.202Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 72,
+  "fields": {
+    "product": 775,
+    "image": "products/gallery/-original-imahhyzhfmfqxykm.webp",
+    "created_at": "2026-10-13T06:56:24.206Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 73,
+  "fields": {
+    "product": 775,
+    "image": "products/gallery/-original-imahhyzhgqhddygc.webp",
+    "created_at": "2026-10-13T06:56:24.209Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 74,
+  "fields": {
+    "product": 774,
+    "image": "products/gallery/-original-imahraz4nkgjfzn7.webp",
+    "created_at": "2026-10-13T07:00:44.889Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 75,
+  "fields": {
+    "product": 774,
+    "image": "products/gallery/-original-imahr2kgabyz2zyv.webp",
+    "created_at": "2026-10-13T07:00:44.895Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 76,
+  "fields": {
+    "product": 774,
+    "image": "products/gallery/-original-imahr2kgqe9bxgxd.webp",
+    "created_at": "2026-10-13T07:00:44.902Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 77,
+  "fields": {
+    "product": 774,
+    "image": "products/gallery/-original-imahr2kg8hzqadrm.webp",
+    "created_at": "2026-10-13T07:00:44.907Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 78,
+  "fields": {
+    "product": 774,
+    "image": "products/gallery/-original-imahr2kgmzamz6wv.webp",
+    "created_at": "2026-10-13T07:00:44.914Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 79,
+  "fields": {
+    "product": 773,
+    "image": "products/gallery/8-5c-sl211-pink-27-feetwell-original-imahqy6g5jsm8sta.webp",
+    "created_at": "2026-10-13T07:05:42.933Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 80,
+  "fields": {
+    "product": 773,
+    "image": "products/gallery/8-5c-sl211-pink-27-feetwell-original-imahqy6gxej2d7by.webp",
+    "created_at": "2026-10-13T07:05:42.938Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 81,
+  "fields": {
+    "product": 773,
+    "image": "products/gallery/11c-sl211-pink-30-feetwell-original-imahqy6g8wzyztvq.webp",
+    "created_at": "2026-10-13T07:05:42.943Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 82,
+  "fields": {
+    "product": 772,
+    "image": "products/gallery/3-4-years-ayzal-56-hood-set-red-ayra-original-imahnrczypaz63gj.webp",
+    "created_at": "2026-10-13T07:09:24.483Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 83,
+  "fields": {
+    "product": 772,
+    "image": "products/gallery/5-6-years-ayzal-54-hood-set-red-ayra-original-imahnrczzcqevyqa.webp",
+    "created_at": "2026-10-13T07:09:24.489Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 84,
+  "fields": {
+    "product": 772,
+    "image": "products/gallery/7-8-years-ayzal-52-hood-set-blue-ayra-original-imahnrczcda3rueh.webp",
+    "created_at": "2026-10-13T07:09:24.493Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 85,
+  "fields": {
+    "product": 771,
+    "image": "products/gallery/3-4-years-arman-pleated-aaraf-creation-original-imahr7wbgz6qa4ys_1.webp",
+    "created_at": "2026-10-13T07:12:37.904Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 86,
+  "fields": {
+    "product": 770,
+    "image": "products/gallery/6-9-months-m-gic-navy-sardartextile-original-imahr8mffxqwp7x5.webp",
+    "created_at": "2026-10-13T07:42:31.443Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 87,
+  "fields": {
+    "product": 770,
+    "image": "products/gallery/0-3-months-sadar-m-gic-mustered-sardartextile-original-imahr8meczyknaem.webp",
+    "created_at": "2026-10-13T07:42:31.450Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 88,
+  "fields": {
+    "product": 27,
+    "image": "products/gallery/white-led-table-lamp-3-brightness-modes-touch-control-enriched-2-origi_4hmImvF.webp",
+    "created_at": "2026-10-13T07:48:40.532Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 89,
+  "fields": {
+    "product": 27,
+    "image": "products/gallery/white-led-table-lamp-3-brightness-modes-touch-control-original-imahns4_PUelpDU.webp",
+    "created_at": "2026-10-13T07:48:40.537Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 90,
+  "fields": {
+    "product": 27,
+    "image": "products/gallery/white-led-table-lamp-3-brightness-modes-touch-control-original-imahns4_7hnxdID.webp",
+    "created_at": "2026-10-13T07:48:40.541Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 91,
+  "fields": {
+    "product": 26,
+    "image": "products/gallery/-original-imahfuzz47gbekwz.webp",
+    "created_at": "2026-10-13T07:52:50.531Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 92,
+  "fields": {
+    "product": 26,
+    "image": "products/gallery/-original-imahfuzzehqvvktg.webp",
+    "created_at": "2026-10-13T07:52:50.539Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 93,
+  "fields": {
+    "product": 26,
+    "image": "products/gallery/-original-imahfuzzh994cjsp.webp",
+    "created_at": "2026-10-13T07:52:50.546Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 94,
+  "fields": {
+    "product": 26,
+    "image": "products/gallery/-original-imahfuzzqsgdjhv4.webp",
+    "created_at": "2026-10-13T07:52:50.552Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 95,
+  "fields": {
+    "product": 25,
+    "image": "products/gallery/100-0-plywood-engineered-wood-engineered-wood-computer-desk-with-origi_9gKlzwf.webp",
+    "created_at": "2026-10-13T07:57:27.712Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 96,
+  "fields": {
+    "product": 25,
+    "image": "products/gallery/100-0-plywood-engineered-wood-engineered-wood-computer-desk-with-origi_kjBGGn7.webp",
+    "created_at": "2026-10-13T07:57:27.722Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 97,
+  "fields": {
+    "product": 25,
+    "image": "products/gallery/100-0-plywood-engineered-wood-engineered-wood-computer-desk-with-origi_nLKxcZm.webp",
+    "created_at": "2026-10-13T07:57:27.730Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 98,
+  "fields": {
+    "product": 25,
+    "image": "products/gallery/100-0-plywood-engineered-wood-engineered-wood-computer-desk-with-origi_RszsLrG.webp",
+    "created_at": "2026-10-13T07:57:27.737Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 99,
+  "fields": {
+    "product": 30,
+    "image": "products/gallery/-original-imahpe8ugj5wqdcs.webp",
+    "created_at": "2026-10-13T08:01:59.913Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 100,
+  "fields": {
+    "product": 30,
+    "image": "products/gallery/-original-imahpe8u5xuzt8gp.webp",
+    "created_at": "2026-10-13T08:01:59.920Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 101,
+  "fields": {
+    "product": 30,
+    "image": "products/gallery/-original-imahpe8uqjkcbxgh.webp",
+    "created_at": "2026-10-13T08:01:59.926Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 102,
+  "fields": {
+    "product": 30,
+    "image": "products/gallery/-original-imahpe8utxvfascn.webp",
+    "created_at": "2026-10-13T08:01:59.931Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 103,
+  "fields": {
+    "product": 29,
+    "image": "products/gallery/30-0-daily-glow-face-serum-with-vitamin-c-turmeric-for-radiant-origina_1ivXuMl.webp",
+    "created_at": "2026-10-13T08:05:43.811Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 104,
+  "fields": {
+    "product": 29,
+    "image": "products/gallery/30-0-daily-glow-face-serum-with-vitamin-c-turmeric-for-radiant-origina_XvtDzPM.webp",
+    "created_at": "2026-10-13T08:05:43.815Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 105,
+  "fields": {
+    "product": 29,
+    "image": "products/gallery/34-daily-glow-sunscreen-vitamin-c-turmeric-for-sun-tan-original-imahnn_7AMNFGV.webp",
+    "created_at": "2026-10-13T08:05:43.821Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 106,
+  "fields": {
+    "product": 29,
+    "image": "products/gallery/30-0-daily-glow-face-serum-with-vitamin-c-turmeric-for-radiant-origina_xrnYAwS.webp",
+    "created_at": "2026-10-13T08:05:43.824Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 107,
+  "fields": {
+    "product": 29,
+    "image": "products/gallery/30-0-daily-glow-face-serum-with-vitamin-c-turmeric-for-radiant-origina_Az1XU4r.webp",
+    "created_at": "2026-10-13T08:05:43.830Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 108,
+  "fields": {
+    "product": 28,
+    "image": "products/gallery/-original-imahk4wqgepz8bdx.webp",
+    "created_at": "2026-10-13T08:09:55.524Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 109,
+  "fields": {
+    "product": 28,
+    "image": "products/gallery/30-0-daily-glow-face-serum-with-vitamin-c-turmeric-for-radiant-origina_RYVLIzr.webp",
+    "created_at": "2026-10-13T08:09:55.533Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 110,
+  "fields": {
+    "product": 28,
+    "image": "products/gallery/30-0-daily-glow-face-serum-with-vitamin-c-turmeric-for-radiant-origina_vumoxL0.webp",
+    "created_at": "2026-10-13T08:09:55.539Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 111,
+  "fields": {
+    "product": 28,
+    "image": "products/gallery/34-daily-glow-sunscreen-vitamin-c-turmeric-for-sun-tan-original-imahnn_qsf3G7K.webp",
+    "created_at": "2026-10-13T08:09:55.544Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 112,
+  "fields": {
+    "product": 33,
+    "image": "products/gallery/5-storm-football-size-5-68-1-football-nivia-original-imaheqxpkf4wdpcn.webp",
+    "created_at": "2026-10-13T08:13:24.858Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 113,
+  "fields": {
+    "product": 33,
+    "image": "products/gallery/5-storm-football-size-5-68-1-football-nivia-original-imaheqxparvbfwgb.webp",
+    "created_at": "2026-10-13T08:13:24.866Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 114,
+  "fields": {
+    "product": 33,
+    "image": "products/gallery/400-450-venomous-5-23-1-fb-venomous-grn-5-football-vector-x-original-i_HbZk9HV.webp",
+    "created_at": "2026-10-13T08:13:24.874Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 115,
+  "fields": {
+    "product": 31,
+    "image": "products/gallery/hopper-jetpro-n-ibc-24t-s-green-with-90-assembled-24-16-5-original-ima_yv2ZMt9.webp",
+    "created_at": "2026-10-13T08:19:28.421Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 116,
+  "fields": {
+    "product": 31,
+    "image": "products/gallery/hopper-jetpro-n-ibc-24t-s-green-with-90-assembled-24-16-5-original-ima_5B1poKl.webp",
+    "created_at": "2026-10-13T08:19:28.426Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 117,
+  "fields": {
+    "product": 31,
+    "image": "products/gallery/hopper-jetpro-n-ibc-24t-s-green-with-90-assembled-24-16-5-original-ima_xhrVo33.webp",
+    "created_at": "2026-10-13T08:19:28.430Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 118,
+  "fields": {
+    "product": 32,
+    "image": "products/gallery/pta450m-6hp-peak-bldc-motor-18-km-h-speed-16-level-auto-incline-origin_42IXNAk.webp",
+    "created_at": "2026-10-13T08:24:18.453Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 119,
+  "fields": {
+    "product": 32,
+    "image": "products/gallery/pta450m-6hp-peak-bldc-motor-18-km-h-speed-16-level-auto-incline-origin_YGrc7I5.webp",
+    "created_at": "2026-10-13T08:24:18.460Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 120,
+  "fields": {
+    "product": 32,
+    "image": "products/gallery/pta450m-6hp-peak-bldc-motor-18-km-h-speed-16-level-auto-incline-origin_I9WIwsX.webp",
+    "created_at": "2026-10-13T08:24:18.467Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 121,
+  "fields": {
+    "product": 32,
+    "image": "products/gallery/pta450m-6hp-peak-bldc-motor-18-km-h-speed-16-level-auto-incline-origin_R8gGcrQ.webp",
+    "created_at": "2026-10-13T08:24:18.473Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 122,
+  "fields": {
+    "product": 5,
+    "image": "products/gallery/m-r-sky-blue-stoneberg-original-imahz3jfkskgtg4h.webp",
+    "created_at": "2026-10-13T08:29:04.234Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 123,
+  "fields": {
+    "product": 5,
+    "image": "products/gallery/l-mk24-men-high-light-blue-l-tushree-boutique-original-imahmx98vujfzz7k.webp",
+    "created_at": "2026-10-13T08:29:04.241Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 124,
+  "fields": {
+    "product": 5,
+    "image": "products/gallery/m-r-sky-blue-stoneberg-original-imahz3gqh3kbwzes.webp",
+    "created_at": "2026-10-13T08:29:04.246Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 125,
+  "fields": {
+    "product": 5,
+    "image": "products/gallery/m-r-sky-blue-stoneberg-original-imahz4cnywepwkmf.webp",
+    "created_at": "2026-10-13T08:29:04.251Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 126,
+  "fields": {
+    "product": 7,
+    "image": "products/gallery/32-kctr-dmy-2121-olive-fubar-original-imahye44mmschqnq.webp",
+    "created_at": "2026-10-13T08:31:34.532Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 127,
+  "fields": {
+    "product": 7,
+    "image": "products/gallery/32-kctr-dmy-2121-olive-fubar-original-imahye444ubbyrar.webp",
+    "created_at": "2026-10-13T08:31:34.535Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 128,
+  "fields": {
+    "product": 7,
+    "image": "products/gallery/32-kctr-dmy-2121-olive-fubar-original-imahye44gynrcyaz.webp",
+    "created_at": "2026-10-13T08:31:34.538Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 132,
+  "fields": {
+    "product": 4,
+    "image": "products/gallery/l-sh-navyblue-a4-yameetindia-original-imahr7harheqgfsy.webp",
+    "created_at": "2026-10-13T08:39:11.346Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 133,
+  "fields": {
+    "product": 4,
+    "image": "products/gallery/xxl-sh-navyblue-a4-yameetindia-original-imahr7hanzu7pche.webp",
+    "created_at": "2026-10-13T08:39:11.354Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 134,
+  "fields": {
+    "product": 4,
+    "image": "products/gallery/m-sh-navyblue-a4-yameetindia-original-imahr7haapbchw2y.webp",
+    "created_at": "2026-10-13T08:39:11.359Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 135,
+  "fields": {
+    "product": 6,
+    "image": "products/gallery/28-lintrk-crm-masher-original-imahpyf7c5zg9bjh.webp",
+    "created_at": "2026-10-13T08:42:03.546Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 136,
+  "fields": {
+    "product": 6,
+    "image": "products/gallery/28-lintrk-crm-masher-original-imahpyf3jfy5cvrg.webp",
+    "created_at": "2026-10-13T08:42:03.553Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 137,
+  "fields": {
+    "product": 6,
+    "image": "products/gallery/36-lintrk-crm-masher-original-imahpyf3bfw8bpcz.webp",
+    "created_at": "2026-10-13T08:42:03.559Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 138,
+  "fields": {
+    "product": 9,
+    "image": "products/gallery/-original-imahgcsucu9289rf.webp",
+    "created_at": "2026-10-13T08:45:52.367Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 139,
+  "fields": {
+    "product": 9,
+    "image": "products/gallery/-original-imahgcsuzpyfkgba.webp",
+    "created_at": "2026-10-13T08:45:52.373Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 140,
+  "fields": {
+    "product": 9,
+    "image": "products/gallery/-original-imahgcsujwb8y9fu.webp",
+    "created_at": "2026-10-13T08:45:52.377Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 141,
+  "fields": {
+    "product": 9,
+    "image": "products/gallery/-original-imahgcsuhudmrhyz.webp",
+    "created_at": "2026-10-13T08:45:52.389Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 142,
+  "fields": {
+    "product": 9,
+    "image": "products/gallery/-original-imahgcsuhgsyhsrq.webp",
+    "created_at": "2026-10-13T08:45:52.395Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 143,
+  "fields": {
+    "product": 8,
+    "image": "products/gallery/-original-imahnhfrwuexm3ff.webp",
+    "created_at": "2026-10-13T08:50:49.199Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 144,
+  "fields": {
+    "product": 8,
+    "image": "products/gallery/-original-imahnhfqzky8wmu4.webp",
+    "created_at": "2026-10-13T08:50:49.207Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 145,
+  "fields": {
+    "product": 8,
+    "image": "products/gallery/-original-imahnhfqgthfsy6y.webp",
+    "created_at": "2026-10-13T08:50:49.213Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 146,
+  "fields": {
+    "product": 8,
+    "image": "products/gallery/-original-imahnhfqy2kgbdhz.webp",
+    "created_at": "2026-10-13T08:50:49.219Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 147,
+  "fields": {
+    "product": 8,
+    "image": "products/gallery/-original-imahnhfqjqjhyqqj.webp",
+    "created_at": "2026-10-13T08:50:49.225Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 148,
+  "fields": {
+    "product": 11,
+    "image": "products/gallery/m-1-jm477-blue-m-jaipur-morni-original-imahmqh6af9nhkp4.webp",
+    "created_at": "2026-10-13T08:55:29.903Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 149,
+  "fields": {
+    "product": 11,
+    "image": "products/gallery/l-1-jm477-blue-l-jaipur-morni-original-imahmqh69rrzxnnr.webp",
+    "created_at": "2026-10-13T08:55:29.910Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 150,
+  "fields": {
+    "product": 11,
+    "image": "products/gallery/l-1-jm477-blue-l-jaipur-morni-original-imahmqh6z2afhknf.webp",
+    "created_at": "2026-10-13T08:55:29.917Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 151,
+  "fields": {
+    "product": 10,
+    "image": "products/gallery/s-1-d988-topss-deklook-original-imahnyhsqmh3cvhr.webp",
+    "created_at": "2026-10-13T08:59:12.467Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 152,
+  "fields": {
+    "product": 10,
+    "image": "products/gallery/xl-1-d988-topss-deklook-original-imahnyhsegenjghq.webp",
+    "created_at": "2026-10-13T08:59:12.478Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 153,
+  "fields": {
+    "product": 10,
+    "image": "products/gallery/xs-1-d988-topss-deklook-original-imahnyhszszyn8jb.webp",
+    "created_at": "2026-10-13T08:59:12.485Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 154,
+  "fields": {
+    "product": 10,
+    "image": "products/gallery/xs-1-d988-topss-deklook-original-imahnyhszkdkf8wd.webp",
+    "created_at": "2026-10-13T08:59:12.493Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 155,
+  "fields": {
+    "product": 13,
+    "image": "products/gallery/l-pen-0-fuback-original-imahqabe5r2d7bev.webp",
+    "created_at": "2026-10-13T09:01:34.570Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 156,
+  "fields": {
+    "product": 13,
+    "image": "products/gallery/l-pen-0-fuback-original-imahqabe6mptucq8.webp",
+    "created_at": "2026-10-13T09:01:34.576Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 157,
+  "fields": {
+    "product": 13,
+    "image": "products/gallery/l-pen-0-fuback-original-imahqabeqctb8gu4.webp",
+    "created_at": "2026-10-13T09:01:34.580Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 158,
+  "fields": {
+    "product": 12,
+    "image": "products/gallery/32-mt-hh-8037-spring-blue-32-h-h-original-imahhnbxjfexcdxy.webp",
+    "created_at": "2026-10-13T09:04:46.526Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 159,
+  "fields": {
+    "product": 12,
+    "image": "products/gallery/26-mt-hh-8037-spring-blue-26-h-h-original-imahhnbwtftthhf9.webp",
+    "created_at": "2026-10-13T09:04:46.535Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 160,
+  "fields": {
+    "product": 12,
+    "image": "products/gallery/34-mt-hh-8037-spring-blue-34-h-h-original-imahhnbwgkbdgzgh.webp",
+    "created_at": "2026-10-13T09:04:46.541Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 161,
+  "fields": {
+    "product": 12,
+    "image": "products/gallery/34-mt-hh-8037-spring-blue-34-h-h-original-imahhnbxzg5enc6e.webp",
+    "created_at": "2026-10-13T09:04:46.548Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 162,
+  "fields": {
+    "product": 15,
+    "image": "products/gallery/4-mercury-11-4-asian-mint-pink-original-imagtbdakyxweuvx.webp",
+    "created_at": "2026-10-13T09:07:57.193Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 163,
+  "fields": {
+    "product": 15,
+    "image": "products/gallery/8-mercury-11-8-asian-mint-pink-original-imagptt6vmxhmpvh.webp",
+    "created_at": "2026-10-13T09:07:57.201Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 164,
+  "fields": {
+    "product": 15,
+    "image": "products/gallery/8-mercury-11-8-asian-mint-pink-original-imagptt67shfazws.webp",
+    "created_at": "2026-10-13T09:07:57.207Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 165,
+  "fields": {
+    "product": 15,
+    "image": "products/gallery/8-mercury-11-8-asian-mint-pink-original-imagptt6qxh2dhay.webp",
+    "created_at": "2026-10-13T09:07:57.212Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 166,
+  "fields": {
+    "product": 15,
+    "image": "products/gallery/8-mercury-11-8-asian-mint-pink-original-imagptt6vsmqhkn5.webp",
+    "created_at": "2026-10-13T09:07:57.218Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 167,
+  "fields": {
+    "product": 14,
+    "image": "products/gallery/5-260-kitty-onion-5-0-doctor-health-super-soft-onion-original-imahrp8zct5ntn4d.webp",
+    "created_at": "2026-10-13T09:11:50.618Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 168,
+  "fields": {
+    "product": 14,
+    "image": "products/gallery/5-260-kitty-onion-5-0-doctor-health-super-soft-onion-original-imahrp8zv4phd3pf.webp",
+    "created_at": "2026-10-13T09:11:50.625Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 169,
+  "fields": {
+    "product": 780,
+    "image": "products/gallery/-original-imahhhk83hhxrrzu.webp",
+    "created_at": "2026-10-13T09:26:35.422Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 170,
+  "fields": {
+    "product": 780,
+    "image": "products/gallery/-original-imahhhk86gg8wfzg.webp",
+    "created_at": "2026-10-13T09:26:35.429Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 171,
+  "fields": {
+    "product": 780,
+    "image": "products/gallery/-original-imahhhk8sq735zgy.webp",
+    "created_at": "2026-10-13T09:26:35.436Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 172,
+  "fields": {
+    "product": 780,
+    "image": "products/gallery/-original-imahhhk8umpuuv9b.webp",
+    "created_at": "2026-10-13T09:26:35.441Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 173,
+  "fields": {
+    "product": 780,
+    "image": "products/gallery/-original-imahhhk8gzyzwxk5.webp",
+    "created_at": "2026-10-13T09:26:35.447Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 174,
+  "fields": {
+    "product": 781,
+    "image": "products/gallery/-original-imahprhhpak3hs4g.webp",
+    "created_at": "2026-10-13T09:34:27.397Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 175,
+  "fields": {
+    "product": 781,
+    "image": "products/gallery/-original-imahprhhzhwuawhq.webp",
+    "created_at": "2026-10-13T09:34:27.404Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 176,
+  "fields": {
+    "product": 781,
+    "image": "products/gallery/-original-imahprhhds743tdx.webp",
+    "created_at": "2026-10-13T09:34:27.410Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 177,
+  "fields": {
+    "product": 781,
+    "image": "products/gallery/-original-imahprhhtseapghb.webp",
+    "created_at": "2026-10-13T09:34:27.416Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 178,
+  "fields": {
+    "product": 781,
+    "image": "products/gallery/-original-imahprhhjbaj95mw.webp",
+    "created_at": "2026-10-13T09:34:27.422Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 179,
+  "fields": {
+    "product": 783,
+    "image": "products/gallery/3xl-68709302-puma-original-imahcz6ck8zz5h8h.webp",
+    "created_at": "2026-10-13T09:42:19.973Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 180,
+  "fields": {
+    "product": 783,
+    "image": "products/gallery/3xl-68709302-puma-original-imahcz6cwkkykngt.webp",
+    "created_at": "2026-10-13T09:42:19.980Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 181,
+  "fields": {
+    "product": 783,
+    "image": "products/gallery/3xl-68709302-puma-original-imahcz6cem3jhvwn.webp",
+    "created_at": "2026-10-13T09:42:19.985Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 182,
+  "fields": {
+    "product": 783,
+    "image": "products/gallery/3xl-68709302-puma-original-imahcz6cqqgyaazs.webp",
+    "created_at": "2026-10-13T09:42:19.989Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 183,
+  "fields": {
+    "product": 782,
+    "image": "products/gallery/s-men-mrn-ost-plain-theja-shree-tex-original-imahrkzuzct9zdjr.webp",
+    "created_at": "2026-10-13T09:45:50.011Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 184,
+  "fields": {
+    "product": 782,
+    "image": "products/gallery/xxl-men-mrn-ost-plain-theja-shree-tex-original-imahrkzupgzzaaat.webp",
+    "created_at": "2026-10-13T09:45:50.018Z"
+  }
+},
+{
+  "model": "products.productimage",
+  "pk": 185,
+  "fields": {
+    "product": 782,
+    "image": "products/gallery/l-men-mrn-ost-plain-theja-shree-tex-original-imahrkzufeshmkzn.webp",
+    "created_at": "2026-10-13T09:45:50.024Z"
+  }
+}
+]
