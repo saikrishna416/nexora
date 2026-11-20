@@ -1,7 +1,63 @@
+import os
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
+
+
+class EnsureAdminCommandTests(TestCase):
+    def test_missing_configuration_skips_admin_creation(self):
+        with patch.dict(
+            os.environ,
+            {
+                "ADMIN_USERNAME": "",
+                "ADMIN_EMAIL": "",
+                "ADMIN_PASSWORD": "",
+            },
+        ):
+            call_command("ensure_admin")
+
+        self.assertFalse(
+            get_user_model().objects.filter(username="render-admin").exists()
+        )
+
+    def test_command_creates_and_updates_admin_idempotently(self):
+        user_model = get_user_model()
+        with patch.dict(
+            os.environ,
+            {
+                "ADMIN_USERNAME": "render-admin",
+                "ADMIN_EMAIL": "admin@example.com",
+                "ADMIN_PASSWORD": "initial-password",
+            },
+        ):
+            call_command("ensure_admin")
+            call_command("ensure_admin")
+
+        user = user_model.objects.get(username="render-admin")
+        self.assertEqual(user_model.objects.filter(username="render-admin").count(), 1)
+        self.assertEqual(user.email, "admin@example.com")
+        self.assertTrue(user.is_staff)
+        self.assertTrue(user.is_superuser)
+        self.assertTrue(user.is_active)
+        self.assertTrue(user.check_password("initial-password"))
+
+        with patch.dict(
+            os.environ,
+            {
+                "ADMIN_USERNAME": "render-admin",
+                "ADMIN_EMAIL": "updated-admin@example.com",
+                "ADMIN_PASSWORD": "updated-password",
+            },
+        ):
+            call_command("ensure_admin")
+
+        user.refresh_from_db()
+        self.assertEqual(user.email, "updated-admin@example.com")
+        self.assertTrue(user.check_password("updated-password"))
 
 
 class RoleAwareLoginTests(TestCase):

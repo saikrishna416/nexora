@@ -40,8 +40,6 @@ ALLOWED_HOSTS = os.getenv(
 
 
 INSTALLED_APPS = [
-    "cloudinary_storage",
-    "cloudinary",
     "corsheaders",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -52,6 +50,8 @@ INSTALLED_APPS = [
     "django_filters",
     "rest_framework",
     "accounts",
+    "cloudinary_storage",
+    "cloudinary",
     "products",
     "cart",
     "orders",
@@ -261,7 +261,24 @@ STORAGES = {
         "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
     },
 }
 

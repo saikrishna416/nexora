@@ -8,6 +8,17 @@ from rest_framework.test import APIClient
 from .models import ContactInquiry, BusinessPolicyConfig
 
 
+class HealthCheckTests(TestCase):
+    def test_root_returns_api_health(self):
+        response = self.client.get(reverse("health-check"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {"status": "ok", "service": "nexora-api"},
+        )
+
+
 class ContactInquiryAPITests(TestCase):
     def setUp(self):
         self.client = APIClient()
